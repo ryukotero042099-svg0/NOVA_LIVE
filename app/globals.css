@@ -1,0 +1,465 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-space-deep: #04030c;
+  --bg-space-panel: #09071c;
+  --neon-cyan: #00f5ff;
+  --neon-violet: #b829ff;
+  --neon-magenta: #ff2a85;
+  --neon-gold: #ffcf33;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg-space-deep);
+  color: #f8fafc;
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Fondo espacial muy luminoso con nebulosas cian y violeta */
+.cosmic-backdrop {
+  background-color: #050412;
+  background-image: 
+    radial-gradient(circle at 12% 15%, rgba(0, 245, 255, 0.22) 0%, transparent 42%),
+    radial-gradient(circle at 88% 18%, rgba(184, 41, 255, 0.26) 0%, transparent 45%),
+    radial-gradient(circle at 50% 85%, rgba(255, 42, 133, 0.16) 0%, transparent 50%),
+    linear-gradient(180deg, #050414 0%, #090720 55%, #050414 100%);
+}
+
+.cosmic-grid {
+  background-size: 36px 36px;
+  background-image: 
+    linear-gradient(to right, rgba(0, 245, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(184, 41, 255, 0.045) 1px, transparent 1px);
+}
+
+@layer components {
+  .glass-card {
+    background: linear-gradient(
+      145deg,
+      rgba(19, 16, 48, 0.82) 0%,
+      rgba(11, 9, 31, 0.88) 100%
+    );
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 245, 255, 0.28);
+    box-shadow: 
+      inset 0 1px 1px rgba(255, 255, 255, 0.22),
+      0 8px 28px rgba(0, 0, 0, 0.55),
+      0 0 18px rgba(0, 245, 255, 0.12);
+  }
+
+  .glass-card-cyan {
+    background: linear-gradient(
+      145deg,
+      rgba(8, 34, 58, 0.78) 0%,
+      rgba(10, 14, 38, 0.88) 100%
+    );
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 245, 255, 0.55);
+    box-shadow: 
+      inset 0 1px 2px rgba(0, 245, 255, 0.35),
+      0 0 22px rgba(0, 245, 255, 0.26);
+  }
+
+  .glass-card-violet {
+    background: linear-gradient(
+      145deg,
+      rgba(38, 13, 68, 0.78) 0%,
+      rgba(14, 10, 40, 0.88) 100%
+    );
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(184, 41, 255, 0.58);
+    box-shadow: 
+      inset 0 1px 2px rgba(184, 41, 255, 0.35),
+      0 0 22px rgba(184, 41, 255, 0.28);
+  }
+
+  .glass-card-magenta {
+    background: linear-gradient(
+      145deg,
+      rgba(56, 12, 48, 0.82) 0%,
+      rgba(18, 9, 40, 0.9) 100%
+    );
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 42, 133, 0.62);
+    box-shadow: 
+      inset 0 1px 2px rgba(255, 42, 133, 0.4),
+      0 0 26px rgba(255, 42, 133, 0.32);
+  }
+
+  .btn-neon-cyan {
+    background: linear-gradient(135deg, #00f5ff 0%, #00a8ff 100%);
+    color: #030712;
+    font-weight: 800;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 
+      0 0 18px rgba(0, 245, 255, 0.7),
+      0 0 34px rgba(0, 245, 255, 0.35),
+      inset 0 1px 2px rgba(255, 255, 255, 0.75);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-neon-cyan:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 
+      0 0 26px rgba(0, 245, 255, 0.95),
+      0 0 50px rgba(0, 245, 255, 0.5);
+  }
+
+  .btn-neon-violet {
+    background: linear-gradient(135deg, #b829ff 0%, #7c3aed 100%);
+    color: #ffffff;
+    font-weight: 800;
+    border: 1px solid rgba(233, 213, 255, 0.55);
+    box-shadow: 
+      0 0 18px rgba(184, 41, 255, 0.7),
+      0 0 36px rgba(184, 41, 255, 0.35),
+      inset 0 1px 2px rgba(255, 255, 255, 0.5);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-neon-violet:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 
+      0 0 28px rgba(184, 41, 255, 0.95),
+      0 0 52px rgba(184, 41, 255, 0.5);
+  }
+
+  .btn-neon-gradient {
+    background: linear-gradient(95deg, #00f5ff 0%, #b829ff 52%, #ff2a85 100%);
+    color: #ffffff;
+    font-weight: 900;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    box-shadow: 
+      0 0 22px rgba(0, 245, 255, 0.55),
+      0 0 40px rgba(184, 41, 255, 0.45),
+      inset 0 1px 2px rgba(255, 255, 255, 0.65);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn-neon-gradient:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 
+      0 0 30px rgba(0, 245, 255, 0.8),
+      0 0 55px rgba(255, 42, 133, 0.65);
+  }
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 12px rgba(0, 245, 255, 0.8), 0 0 24px rgba(0, 245, 255, 0.4);
+}
+.text-glow-violet {
+  text-shadow: 0 0 12px rgba(184, 41, 255, 0.85), 0 0 24px rgba(184, 41, 255, 0.45);
+}
+.text-glow-magenta {
+  text-shadow: 0 0 14px rgba(255, 42, 133, 0.9), 0 0 28px rgba(255, 42, 133, 0.5);
+}
+
+/* ==========================================================================
+   COREOGRAFÍAS EXCLUSIVAS DE LOS 27 REGALOS NOVA
+   ========================================================================== */
+
+/* 1. Estrella Fugaz: Cruce diagonal cometa */
+@keyframes kfShootingStar {
+  0% { transform: translate(-45px, 35px) rotate(-18deg) scale(0.6); opacity: 0; }
+  20% { transform: translate(0, 0) rotate(0deg) scale(1.12); opacity: 1; }
+  75% { transform: translate(8px, -6px) rotate(4deg) scale(1.03); opacity: 1; }
+  100% { transform: translate(35px, -25px) rotate(10deg) scale(0.95); opacity: 1; }
+}
+.anim-shooting-star { animation: kfShootingStar 1.8s cubic-bezier(0.16, 1, 0.3, 1) infinite alternate; }
+
+/* 2. Corazón Nova: Latido intenso doble */
+@keyframes kfHeartBeat {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 16px #ff2a85); }
+  25% { transform: scale(1.22); filter: drop-shadow(0 0 28px #ff2a85); }
+  45% { transform: scale(0.96); }
+  65% { transform: scale(1.16); filter: drop-shadow(0 0 32px #00f5ff); }
+}
+.anim-heart-beat { animation: kfHeartBeat 1.2s ease-in-out infinite; }
+
+/* 3. Cohete: Despegue ascendente con vibración de turbina */
+@keyframes kfRocketLaunch {
+  0% { transform: translateY(25px) translateX(-15px) scale(0.85); }
+  30% { transform: translateY(-4px) translateX(2px) rotate(-3deg) scale(1.08); }
+  50% { transform: translateY(-10px) translateX(-2px) rotate(3deg) scale(1.12); }
+  100% { transform: translateY(-18px) translateX(12px) scale(1.05); }
+}
+.anim-rocket-launch { animation: kfRocketLaunch 1.1s ease-in-out infinite alternate; }
+
+/* 4. Planeta: Órbita inclinada estilo Saturno */
+@keyframes kfPlanetOrbit {
+  0% { transform: rotate(-12deg) scale(0.95); }
+  50% { transform: rotate(12deg) translateY(-8px) scale(1.1); }
+  100% { transform: rotate(-12deg) scale(0.95); }
+}
+.anim-planet-orbit { animation: kfPlanetOrbit 2.2s ease-in-out infinite; }
+
+/* 5. Lluvia de Meteoritos: Caída en ráfaga + sacudida de impacto */
+@keyframes kfMeteorRain {
+  0% { transform: translate(28px, -28px) scale(0.8); }
+  45% { transform: translate(-6px, 8px) scale(1.14); }
+  60% { transform: translate(5px, -4px) rotate(-4deg); }
+  75% { transform: translate(-4px, 3px) rotate(4deg); }
+  100% { transform: translate(0, 0) scale(1.04); }
+}
+.anim-meteor-rain { animation: kfMeteorRain 1.3s ease-out infinite; }
+
+/* 6. Anillo Galáctico: Giro de vórtice 360 grados */
+@keyframes kfVortexSpin {
+  0% { transform: rotate(0deg) scale(0.95); }
+  50% { transform: rotate(180deg) scale(1.14); }
+  100% { transform: rotate(360deg) scale(0.95); }
+}
+.anim-vortex-spin { animation: kfVortexSpin 3s linear infinite; }
+
+/* 7. Supernova: Estallido radial de rayos luminosos */
+@keyframes kfSupernovaRays {
+  0%, 100% { transform: scale(0.92) rotate(0deg); filter: brightness(1) drop-shadow(0 0 22px #ff2a85); }
+  50% { transform: scale(1.24) rotate(15deg); filter: brightness(1.45) drop-shadow(0 0 42px #00f5ff); }
+}
+.anim-supernova-rays { animation: kfSupernovaRays 1.4s ease-in-out infinite; }
+
+/* 8. Agujero Negro: Atracción gravitacional y pulso de acreción */
+@keyframes kfBlackholeGravity {
+  0% { transform: rotate(0deg) scale(1.08); filter: drop-shadow(0 0 25px #ffcf33); }
+  50% { transform: rotate(-18deg) scale(0.86); filter: drop-shadow(0 0 45px #b829ff); }
+  100% { transform: rotate(0deg) scale(1.08); filter: drop-shadow(0 0 25px #ffcf33); }
+}
+.anim-blackhole-gravity { animation: kfBlackholeGravity 2s ease-in-out infinite; }
+
+/* 9. Galaxia: Rotación cósmica majestuosa */
+@keyframes kfGalaxySpiral {
+  0% { transform: rotate(0deg) scale(0.95); filter: hue-rotate(0deg) drop-shadow(0 0 30px #ff2a85); }
+  50% { transform: rotate(180deg) scale(1.18); filter: hue-rotate(35deg) drop-shadow(0 0 50px #00f5ff); }
+  100% { transform: rotate(360deg) scale(0.95); filter: hue-rotate(0deg) drop-shadow(0 0 30px #ff2a85); }
+}
+.anim-galaxy-spiral { animation: kfGalaxySpiral 4.5s linear infinite; }
+
+/* 10. Osito Neón: Rebote tierno con saludo */
+@keyframes kfTeddyBounce {
+  0%, 100% { transform: translateY(0) rotate(-6deg) scale(1); }
+  50% { transform: translateY(-14px) rotate(6deg) scale(1.12); }
+}
+.anim-teddy-bounce { animation: kfTeddyBounce 1s ease-in-out infinite; }
+
+/* 11. Balón de Fútbol: Giro veloz de disparo a gol */
+@keyframes kfSoccerGoal {
+  0% { transform: translateX(-25px) rotate(0deg) scale(0.8); }
+  55% { transform: translateX(10px) translateY(-10px) rotate(260deg) scale(1.2); }
+  100% { transform: translateX(0) translateY(0) rotate(360deg) scale(1.05); }
+}
+.anim-soccer-goal { animation: kfSoccerGoal 1.3s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+
+/* 12. Rosa Neón: Florecimiento suave */
+@keyframes kfRoseBloom {
+  0%, 100% { transform: scale(0.92) rotate(-5deg); filter: drop-shadow(0 0 14px #ff2a85); }
+  50% { transform: scale(1.16) rotate(5deg); filter: drop-shadow(0 0 32px #00f5ff); }
+}
+.anim-rose-bloom { animation: kfRoseBloom 1.6s ease-in-out infinite; }
+
+/* 13. Dulce Cósmico: Giro festivo pop */
+@keyframes kfCandyPop {
+  0%, 100% { transform: scale(0.94) rotate(-14deg); }
+  50% { transform: scale(1.18) rotate(14deg); }
+}
+.anim-candy-pop { animation: kfCandyPop 0.95s ease-in-out infinite; }
+
+/* 14. Mariposa Neón: Aleteo 3D en vuelo */
+@keyframes kfButterflyFlutter {
+  0%, 100% { transform: translateY(0) scaleX(1) scaleY(1); }
+  25% { transform: translateY(-10px) scaleX(0.65) scaleY(1.08); }
+  50% { transform: translateY(-4px) scaleX(1.12) scaleY(1.05); }
+  75% { transform: translateY(-12px) scaleX(0.7) scaleY(1.1); }
+}
+.anim-butterfly-flutter { animation: kfButterflyFlutter 1.1s ease-in-out infinite; }
+
+/* 15. Helado Neón: Escarcha brillante */
+@keyframes kfIcecreamFrost {
+  0%, 100% { transform: translateY(0) rotate(-4deg); filter: drop-shadow(0 0 18px #00f5ff); }
+  50% { transform: translateY(-10px) rotate(4deg) scale(1.12); filter: brightness(1.3) drop-shadow(0 0 34px #ff2a85); }
+}
+.anim-icecream-frost { animation: kfIcecreamFrost 1.5s ease-in-out infinite; }
+
+/* 16. Patito Dorado: Chapoteo en olas de luz */
+@keyframes kfDuckRipple {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  35% { transform: translateY(-10px) rotate(10deg) scale(1.1); }
+  70% { transform: translateY(3px) rotate(-4deg); }
+}
+.anim-duck-ripple { animation: kfDuckRipple 1.25s ease-in-out infinite; }
+
+/* 17. Gatito Cósmico: Salto felino ágil */
+@keyframes kfCatPounce {
+  0%, 100% { transform: translateY(4px) scale(0.96); }
+  40% { transform: translateY(-18px) scale(1.16) rotate(-5deg); }
+  65% { transform: translateY(-6px) scale(1.08) rotate(5deg); }
+}
+.anim-cat-pounce { animation: kfCatPounce 1.2s ease-in-out infinite; }
+
+/* 18. Unicornio Estelar: Galope arcoíris mágico */
+@keyframes kfUnicornRainbow {
+  0% { transform: translateX(-16px) translateY(6px) rotate(-8deg) scale(0.95); filter: hue-rotate(0deg); }
+  50% { transform: translateX(12px) translateY(-14px) rotate(8deg) scale(1.18); filter: hue-rotate(60deg); }
+  100% { transform: translateX(-16px) translateY(6px) rotate(-8deg) scale(0.95); filter: hue-rotate(0deg); }
+}
+.anim-unicorn-rainbow { animation: kfUnicornRainbow 1.8s ease-in-out infinite; }
+
+/* 19. Diamante Cristal: Destello prismático */
+@keyframes kfDiamondPrism {
+  0%, 100% { transform: scale(0.95) rotate(0deg); filter: brightness(1) drop-shadow(0 0 20px #00f5ff); }
+  50% { transform: scale(1.18) rotate(8deg); filter: brightness(1.45) drop-shadow(0 0 38px #b829ff); }
+}
+.anim-diamond-prism { animation: kfDiamondPrism 1.4s ease-in-out infinite; }
+
+/* 20. Corona Real: Descenso imperial dorado */
+@keyframes kfCrownDescend {
+  0% { transform: translateY(-20px) scale(0.9); filter: drop-shadow(0 0 18px #ffcf33); }
+  50% { transform: translateY(4px) scale(1.16); filter: brightness(1.3) drop-shadow(0 0 38px #ffcf33); }
+  100% { transform: translateY(-20px) scale(0.9); filter: drop-shadow(0 0 18px #ffcf33); }
+}
+.anim-crown-descend { animation: kfCrownDescend 1.7s ease-in-out infinite; }
+
+/* 21. Trofeo Campeón: Alzada de victoria */
+@keyframes kfTrophyChampion {
+  0%, 100% { transform: translateY(0) scale(1); }
+  45% { transform: translateY(-16px) scale(1.2) rotate(-4deg); filter: brightness(1.35) drop-shadow(0 0 35px #ffcf33); }
+  65% { transform: translateY(-12px) scale(1.15) rotate(4deg); }
+}
+.anim-trophy-champion { animation: kfTrophyChampion 1.5s ease-in-out infinite; }
+
+/* 22. Caja Sorpresa Neón: Vibración y apertura */
+@keyframes kfGiftboxPop {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  20% { transform: scale(0.92) rotate(-10deg); }
+  40% { transform: scale(0.95) rotate(10deg); }
+  60% { transform: scale(1.22) translateY(-10px) rotate(0deg); }
+}
+.anim-giftbox-pop { animation: kfGiftboxPop 1.2s ease-in-out infinite; }
+
+/* 23. Guitarra Eléctrica: Vibración sónica de concierto */
+@keyframes kfGuitarSonic {
+  0%, 100% { transform: rotate(-6deg) scale(1); }
+  25% { transform: rotate(8deg) scale(1.14); filter: drop-shadow(0 0 30px #00f5ff); }
+  50% { transform: rotate(-8deg) scale(1.1); filter: drop-shadow(0 0 30px #b829ff); }
+  75% { transform: rotate(6deg) scale(1.16); }
+}
+.anim-guitar-sonic { animation: kfGuitarSonic 0.85s ease-in-out infinite; }
+
+/* 24. León Cósmico: Rugido sísmico que estremece */
+@keyframes kfLionRoar {
+  0%, 100% { transform: scale(0.95); }
+  35% { transform: scale(1.26); filter: brightness(1.35) drop-shadow(0 0 42px #00f5ff); }
+  45% { transform: scale(1.22) translateX(-5px); }
+  55% { transform: scale(1.24) translateX(5px); }
+  65% { transform: scale(1.2) translateX(-4px); }
+}
+.anim-lion-roar { animation: kfLionRoar 1.5s ease-in-out infinite; }
+
+/* 25. Dragón Neón: Vuelo rasante y fuego de plasma */
+@keyframes kfDragonFlame {
+  0%, 100% { transform: translate(-12px, 6px) rotate(-6deg) scale(0.96); }
+  50% { transform: translate(12px, -12px) rotate(6deg) scale(1.22); filter: brightness(1.3) drop-shadow(0 0 45px #b829ff); }
+}
+.anim-dragon-flame { animation: kfDragonFlame 1.6s ease-in-out infinite; }
+
+/* 26. Castillo de Cristal: Ascenso majestuoso con aurora */
+@keyframes kfCastleAurora {
+  0%, 100% { transform: translateY(6px) scale(0.96); filter: drop-shadow(0 0 24px #00f5ff); }
+  50% { transform: translateY(-10px) scale(1.18); filter: brightness(1.35) drop-shadow(0 0 48px #ffcf33); }
+}
+.anim-castle-aurora { animation: kfCastleAurora 2s ease-in-out infinite; }
+
+/* 27. Ave Fénix Imperial: Renacimiento en fuego dorado y rosa */
+@keyframes kfPhoenixRise {
+  0%, 100% { transform: translateY(10px) scale(0.94); filter: brightness(1) drop-shadow(0 0 28px #ff2a85); }
+  50% { transform: translateY(-16px) scale(1.28); filter: brightness(1.45) drop-shadow(0 0 55px #ffcf33); }
+}
+.anim-phoenix-rise { animation: kfPhoenixRise 1.6s ease-in-out infinite; }
+
+/* Entrada general del contenedor de alerta */
+@keyframes shootingStarSlide {
+  0% { transform: translateY(-20px) scale(0.85); opacity: 0; }
+  12% { transform: translateY(0) scale(1); opacity: 1; }
+  88% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-15px) scale(0.92); opacity: 0; }
+}
+.animate-alert-lifecycle {
+  animation: shootingStarSlide 4.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Scrollbar personalizada espacial */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(5, 4, 18, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #00f5ff, #b829ff);
+  border-radius: 9999px;
+}
+
+/* Pulso SUAVE para la insignia EN VIVO (prohibido parpadeo tipo estrobo) */
+@keyframes softLiveBreathing {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.45), 0 0 18px rgba(184, 41, 255, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.86;
+    box-shadow: 0 0 18px rgba(244, 63, 94, 0.85), 0 0 28px rgba(0, 245, 255, 0.45);
+    transform: scale(1.02);
+  }
+}
+
+.animate-soft-pulse {
+  animation: softLiveBreathing 3.4s ease-in-out infinite;
+}
+
+/* Modo Calma y Ajuste de Intensidad Visual */
+.calm-mode .animate-soft-pulse,
+.calm-mode .animate-pulse,
+.calm-mode .animate-ping {
+  animation: none !important;
+}
+
+.calm-mode .glass-card,
+.calm-mode .glass-card-cyan,
+.calm-mode .glass-card-violet,
+.calm-mode .glass-card-magenta {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* Sacudida suave para impactos en la nave (sin estrobo) */
+@keyframes gentleShake {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  20% { transform: translate(-3px, 2px) scale(0.98); }
+  40% { transform: translate(3px, -2px) scale(0.99); }
+  60% { transform: translate(-2px, -1px) scale(0.99); }
+  80% { transform: translate(2px, 1px) scale(1); }
+}
+
+.animate-gentle-shake {
+  animation: gentleShake 0.45s ease-in-out;
+}
+
+@keyframes fadeOutFast {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15) translateY(-8px); }
+}
+
+.animate-fade-out {
+  animation: fadeOutFast 0.55s ease-out forwards;
+}
+
+
