@@ -234,6 +234,58 @@ export const LiveVideoStage = React.memo(
       session.roomId,
     ]);
 
+    // Vista previa inmediata de la cámara local del anfitrión (cero pantalla negra mientras conecta LiveKit)
+    useEffect(() => {
+      if (!isHostWindow) return;
+      let active = true;
+
+      const setupImmediateCamera = async () => {
+        try {
+          const el = localVideoRef.current;
+          if (!el) return;
+          el.muted = true;
+          el.setAttribute("playsinline", "true");
+          el.setAttribute("webkit-playsinline", "true");
+
+          const existing = getLocalLiveKitVideoTrack();
+          if (existing && existing.mediaStreamTrack) {
+            existing.attach(el);
+            if (!el.srcObject) {
+              el.srcObject = new MediaStream([existing.mediaStreamTrack]);
+            }
+            void el.play().catch(() => {});
+            return;
+          }
+
+          if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode,
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+              },
+              audio: false,
+            });
+            if (!active) {
+              stream.getTracks().forEach((t) => t.stop());
+              return;
+            }
+            if (el && (!el.srcObject || el.paused)) {
+              el.srcObject = stream;
+              void el.play().catch(() => {});
+            }
+          }
+        } catch (e) {
+          console.warn("[LiveVideoStage] Vista previa inicial de cámara:", e);
+        }
+      };
+
+      void setupImmediateCamera();
+      return () => {
+        active = false;
+      };
+    }, [isHostWindow, facingMode]);
+
     // Garantizar que la cámara local del anfitrión se mantenga acoplada y visible en pantalla (móvil y PC)
     useEffect(() => {
       if (!isHostWindow || !isLiveKitMode) return;
@@ -473,73 +525,75 @@ export const LiveVideoStage = React.memo(
                 }`}
               />
 
-              {/* Barra de Controles Táctiles del Anfitrión durante el En Vivo (Móvil y PC) */}
-              <div className="absolute bottom-3 inset-x-2 sm:inset-x-4 z-20 flex flex-wrap items-center justify-center gap-2">
-                {/* 1. Cambiar Cámara */}
-                <button
-                  type="button"
-                  onClick={handleFlipCamera}
-                  disabled={isFlippingCamera || isLivePaused}
-                  className="inline-flex items-center gap-1.5 rounded-2xl border border-neon-cyan/70 bg-space-950/90 px-3.5 py-2.5 text-xs font-black text-white shadow-neon-cyan backdrop-blur hover:bg-neon-cyan/25 active:scale-95 transition cursor-pointer"
-                  title="Cambiar entre cámara frontal y trasera"
-                >
-                  <SwitchCamera
-                    className={`h-4 w-4 text-neon-cyan ${
-                      isFlippingCamera ? "animate-spin" : ""
+              {/* Barra de Controles Táctiles Flotante del Anfitrión (Sin encimarse con la barra inferior) */}
+              <div className="absolute bottom-24 sm:bottom-20 inset-x-2 sm:inset-x-4 z-30 flex flex-wrap items-center justify-center gap-2 pointer-events-auto">
+                <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl bg-black/75 p-1.5 border border-neon-cyan/40 backdrop-blur-md shadow-neon-cyan">
+                  {/* 1. Cambiar Cámara */}
+                  <button
+                    type="button"
+                    onClick={handleFlipCamera}
+                    disabled={isFlippingCamera || isLivePaused}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-neon-cyan/60 bg-space-950/90 px-3 py-1.5 text-[11px] sm:text-xs font-black text-white shadow hover:bg-neon-cyan/20 active:scale-95 transition cursor-pointer"
+                    title="Cambiar entre cámara frontal y trasera"
+                  >
+                    <SwitchCamera
+                      className={`h-3.5 w-3.5 text-neon-cyan ${
+                        isFlippingCamera ? "animate-spin" : ""
+                      }`}
+                    />
+                    <span>
+                      {facingMode === "user" ? "Girar Cámara" : "Cámara Frontal"}
+                    </span>
+                  </button>
+
+                  {/* 2. Silenciar / Reactivar Micrófono */}
+                  <button
+                    type="button"
+                    onClick={handleToggleHostMic}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] sm:text-xs font-black shadow active:scale-95 transition cursor-pointer ${
+                      isHostMicMuted
+                        ? "border-rose-500 bg-rose-600 text-white animate-soft-pulse"
+                        : "border-neon-cyan/60 bg-space-950/90 text-white hover:bg-neon-cyan/20"
                     }`}
-                  />
-                  <span>
-                    {facingMode === "user" ? "Girar Cámara (Trasera)" : "Girar Cámara (Frontal)"}
-                  </span>
-                </button>
+                    title={isHostMicMuted ? "Reactivar micrófono" : "Silenciar micrófono"}
+                  >
+                    {isHostMicMuted ? (
+                      <>
+                        <MicOff className="h-3.5 w-3.5 text-rose-200" />
+                        <span>Reactivar Mic</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="h-3.5 w-3.5 text-neon-cyan" />
+                        <span>Silenciar Mic</span>
+                      </>
+                    )}
+                  </button>
 
-                {/* 2. Silenciar / Reactivar Micrófono */}
-                <button
-                  type="button"
-                  onClick={handleToggleHostMic}
-                  className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-xs font-black shadow-lg backdrop-blur active:scale-95 transition cursor-pointer ${
-                    isHostMicMuted
-                      ? "border-rose-500 bg-rose-600/90 text-white shadow-rose-600/40 animate-soft-pulse"
-                      : "border-neon-cyan/70 bg-space-950/90 text-white shadow-neon-cyan hover:bg-neon-cyan/25"
-                  }`}
-                  title={isHostMicMuted ? "Reactivar micrófono" : "Silenciar micrófono"}
-                >
-                  {isHostMicMuted ? (
-                    <>
-                      <MicOff className="h-4 w-4 text-rose-200" />
-                      <span>Reactivar Mic</span>
-                    </>
-                  ) : (
-                    <>
-                      <Mic className="h-4 w-4 text-neon-cyan" />
-                      <span>Silenciar Mic</span>
-                    </>
-                  )}
-                </button>
-
-                {/* 3. Pausar / Reanudar Transmisión */}
-                <button
-                  type="button"
-                  onClick={handleToggleLivePause}
-                  className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-xs font-black shadow-lg backdrop-blur active:scale-95 transition cursor-pointer ${
-                    isLivePaused
-                      ? "border-amber-400 bg-amber-500 text-slate-950 shadow-amber-400/40 animate-pulse font-extrabold"
-                      : "border-amber-400/60 bg-space-950/90 text-amber-300 shadow-neon-violet hover:bg-amber-400/20"
-                  }`}
-                  title={isLivePaused ? "Reanudar transmisión" : "Pausar transmisión"}
-                >
-                  {isLivePaused ? (
-                    <>
-                      <Play className="h-4 w-4 fill-current text-slate-950" />
-                      <span>Reanudar En Vivo</span>
-                    </>
-                  ) : (
-                    <>
-                      <Pause className="h-4 w-4 text-amber-300" />
-                      <span>Pausar En Vivo</span>
-                    </>
-                  )}
-                </button>
+                  {/* 3. Pausar / Reanudar Transmisión */}
+                  <button
+                    type="button"
+                    onClick={handleToggleLivePause}
+                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[11px] sm:text-xs font-black shadow active:scale-95 transition cursor-pointer ${
+                      isLivePaused
+                        ? "border-amber-400 bg-amber-500 text-slate-950 font-extrabold animate-pulse"
+                        : "border-amber-400/60 bg-space-950/90 text-amber-300 hover:bg-amber-400/20"
+                    }`}
+                    title={isLivePaused ? "Reanudar transmisión" : "Pausar transmisión"}
+                  >
+                    {isLivePaused ? (
+                      <>
+                        <Play className="h-3.5 w-3.5 fill-current text-slate-950" />
+                        <span>Reanudar En Vivo</span>
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="h-3.5 w-3.5 text-amber-300" />
+                        <span>Pausar En Vivo</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Overlay cuando el anfitrión pausa la transmisión */}

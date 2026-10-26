@@ -131,12 +131,17 @@ export async function connectToLiveKitRoom(
   if (typeof window === "undefined") return null;
 
   if (activeRoom && activeRoom.state === "connected") {
-    // Si ya está conectada la sala, re-suscribir pistas existentes inmediatamente
-    attachExistingRemoteTracks(activeRoom, options);
-    if (!activeRoom.canPlaybackAudio) {
-      options.onAudioBlocked?.(true);
+    // Si la sala conectada es distinta a la que se solicita, o si cambiamos de rol (ej: ahora somos anfitrión), desconectar primero
+    if (activeRoom.name !== options.roomName || (options.isHost && !localVideoTrack)) {
+      disconnectLiveKitRoom();
+    } else {
+      // Re-suscribir pistas existentes inmediatamente
+      attachExistingRemoteTracks(activeRoom, options);
+      if (!activeRoom.canPlaybackAudio) {
+        options.onAudioBlocked?.(true);
+      }
+      return { room: activeRoom, mode: "livekit_cloud" };
     }
-    return { room: activeRoom, mode: "livekit_cloud" };
   }
 
   if (connectionPromise) {
@@ -171,11 +176,8 @@ export async function connectToLiveKitRoom(
       options.onStatusChange?.("Conectando con LiveKit Cloud WebRTC...");
 
       const room = new Room({
-        adaptiveStream: false, // Evita degradar agresivamente la calidad del video en pantallas retina
-        dynacast: true,
-        videoCaptureDefaults: {
-          resolution: VideoPresets.h1080.resolution,
-        },
+        adaptiveStream: false,
+        dynacast: false,
       });
 
       // 2. Suscribirse a pistas remotas (los espectadores ven el video y escuchan la voz)
@@ -279,20 +281,20 @@ export async function connectToLiveKitRoom(
         if (options.cameraEnabled !== false) {
           let videoTrack: LocalVideoTrack | null = null;
           try {
-            // Intento 1: Cámara frontal móvil con resolución 720p adaptable (fluida y compatible)
+            // Intento 1: Cámara frontal/trasera móvil con resolución adaptable
             videoTrack = await createLocalVideoTrack({
               facingMode: currentFacingMode,
               resolution: VideoPresets.h720.resolution,
             });
           } catch (err1) {
-            console.warn("[LiveKit] Intento 1 de cámara falló, probando con facingMode flexible:", err1);
+            console.warn("[LiveKit] Intento 1 con resolución h720 falló, probando facingMode flexible:", err1);
             try {
-              // Intento 2: Sin restricción estricta de resolución (vital para modo vertical en teléfonos)
+              // Intento 2: Sin restricción estricta de resolución (modo vertical en teléfonos)
               videoTrack = await createLocalVideoTrack({
                 facingMode: currentFacingMode,
               });
             } catch (err2) {
-              console.warn("[LiveKit] Intento 2 de cámara falló, probando cámara genérica del dispositivo:", err2);
+              console.warn("[LiveKit] Intento 2 falló, probando cámara genérica:", err2);
               try {
                 // Intento 3: Cualquier cámara disponible en el navegador
                 videoTrack = await createLocalVideoTrack();
@@ -305,18 +307,21 @@ export async function connectToLiveKitRoom(
           if (videoTrack) {
             localVideoTrack = videoTrack;
             try {
+              // Intento A: Publicación directa y compatible (sin forzar simulcast para evitar errores WebKit)
               await room.localParticipant.publishTrack(videoTrack, {
                 name: "camera",
-                simulcast: true,
-                videoCodec: "vp8", // Máxima compatibilidad cruzada con iOS Safari, Android y PC
-                videoEncoding: {
-                  maxBitrate: 2_500_000,
-                  maxFramerate: 30,
-                },
+                simulcast: false,
               });
               console.log("[LiveKit Host] Cámara WebRTC publicada exitosamente.");
             } catch (pubVideoErr) {
-              console.error("[LiveKit] Error al publicar pista de video:", pubVideoErr);
+              console.warn("[LiveKit] Intento A de publicación falló, probando publicación básica:", pubVideoErr);
+              try {
+                // Intento B: Publicación base sin parámetros adicionales
+                await room.localParticipant.publishTrack(videoTrack);
+                console.log("[LiveKit Host] Cámara WebRTC publicada en modo básico.");
+              } catch (pubVideoErr2) {
+                console.error("[LiveKit] Error al publicar pista de video:", pubVideoErr2);
+              }
             }
           }
         }

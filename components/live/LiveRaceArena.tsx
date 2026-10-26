@@ -243,22 +243,7 @@ export function LiveRaceArena({ session }: LiveRaceArenaProps) {
         </div>
       )}
 
-      {/* Botón Gigante Táctil de Aceleración en Móvil y PC */}
-      {activeRace.status === "racing" && isCurrentUserInRace && (
-        <div className="rounded-3xl border-2 border-neon-cyan bg-gradient-to-r from-[#041d3b] via-[#093259] to-[#041d3b] p-4 text-center space-y-2 shadow-neon-cyan">
-          <p className="text-xs font-black uppercase tracking-wider text-cyan-200">
-            ⚡ TOCA RÁPIDO PARA AVANZAR — CADA TOQUE CUENTA EN EL SERVIDOR
-          </p>
-          <button
-            type="button"
-            onClick={boostMyRacer}
-            className="btn-neon-gradient w-full py-4 rounded-2xl text-base sm:text-lg font-black flex items-center justify-center gap-2 shadow-neon-cyan animate-soft-pulse active:scale-95 transition cursor-pointer select-none"
-          >
-            <Zap className="h-6 w-6 text-amber-300 fill-current" />
-            <span>¡PULSAR PARA ACELERAR! 🚀⚡</span>
-          </button>
-        </div>
-      )}
+
 
       {/* =====================================================================
           FASE 4 (AL TERMINAR): ANUNCIO DEL GANADOR EN PANTALLA GRANDE + PODIO 1°-2°-3°

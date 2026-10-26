@@ -717,7 +717,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
 
     try {
-      sessionStorage.setItem("nova_host_room_id_v5", newSession.roomId);
+      sessionStorage.setItem("nova_host_room_id_v6", newSession.roomId);
     } catch {
       // Ignorar
     }
@@ -745,7 +745,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // Apagar inmediatamente el ref para que ningún intervalo de voz vuelva a revivir la sesión
     liveSessionRef.current = null;
     try {
-      sessionStorage.removeItem("nova_host_room_id_v5");
+      sessionStorage.removeItem("nova_host_room_id_v6");
     } catch {
       // Ignorar
     }
