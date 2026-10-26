@@ -18,19 +18,27 @@ export async function POST(request: Request) {
     }
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
-    const isStripeTestConfigured = stripeSecretKey.startsWith("sk_test_");
+    const isStripeConfigured =
+      stripeSecretKey.startsWith("sk_test_") ||
+      stripeSecretKey.startsWith("sk_live_");
 
-    // Si el usuario ya colocó su llave sk_test_ en .env.local, creamos sesión real en Stripe API
-    if (isStripeTestConfigured) {
+    // Si el usuario configuró su llave sk_test_ o sk_live_, creamos sesión real en Stripe Checkout API
+    if (isStripeConfigured) {
+      const origin =
+        request.headers.get("origin") ||
+        request.headers.get("referer") ||
+        "http://localhost:3005";
+      const baseUrl = origin.replace(/\/+$/, "");
+
       const params = new URLSearchParams();
       params.append("mode", "payment");
       params.append(
         "success_url",
-        "http://localhost:3005/monedero?checkout=success"
+        `${baseUrl}/monedero?checkout=success`
       );
       params.append(
         "cancel_url",
-        "http://localhost:3005/monedero?checkout=cancel"
+        `${baseUrl}/monedero?checkout=cancel`
       );
       params.append("line_items[0][price_data][currency]", "usd");
       params.append(
@@ -62,7 +70,7 @@ export async function POST(request: Request) {
       if (stripeRes.ok) {
         const session = await stripeRes.json();
         return NextResponse.json({
-          mode: "stripe_test_api",
+          mode: "stripe_checkout",
           checkoutUrl: session.url,
           package: selectedPkg,
         });

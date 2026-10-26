@@ -11,12 +11,14 @@ export async function POST(request: Request) {
     };
 
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY || "";
-    const isStripeTestConfigured = stripeSecretKey.startsWith("sk_test_");
+    const isStripeConfigured =
+      stripeSecretKey.startsWith("sk_test_") ||
+      stripeSecretKey.startsWith("sk_live_");
 
     if (action === "link_account") {
       return NextResponse.json({
         ok: true,
-        mode: isStripeTestConfigured ? "stripe_connect_test" : "sandbox_connect",
+        mode: isStripeConfigured ? "stripe_connect" : "sandbox_connect",
         stripeAccountId: `acct_test_${Date.now().toString().slice(-6)}`,
         message: `Cuenta Stripe Connect Express vinculada para @${
           username || "creador"
@@ -37,7 +39,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({
         ok: true,
-        mode: isStripeTestConfigured ? "stripe_connect_test" : "sandbox_connect",
+        mode: isStripeConfigured ? "stripe_connect" : "sandbox_connect",
         payoutId: `po_test_${Date.now().toString().slice(-6)}`,
         withdrawnUsd: amountUsd,
         message: `Retiro de $${amountUsd.toFixed(
