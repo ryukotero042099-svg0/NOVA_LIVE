@@ -32,6 +32,7 @@ export default function LaSalaPageStep5() {
     currentUser,
     profiles,
     switchProfile,
+    setIsProfileModalOpen,
     activeLiveSession,
     isHostWindow,
     windowInstanceId,
@@ -250,6 +251,14 @@ export default function LaSalaPageStep5() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={() => setIsProfileModalOpen(true)}
+            className="rounded-2xl border border-dashed border-neon-cyan/50 bg-space-900/40 p-3 text-center transition flex flex-col items-center justify-center gap-1 hover:border-neon-cyan text-cyan-200"
+          >
+            <span className="text-xl font-bold">+</span>
+            <p className="text-xs font-black">Crear Otro Perfil</p>
+          </button>
         </div>
       </section>
 

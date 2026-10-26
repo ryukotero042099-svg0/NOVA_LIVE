@@ -32,7 +32,6 @@ export default function HomePageStep4() {
     profiles,
     setIsProfileModalOpen,
     simulateGainFollowerForCreator,
-    resetAstroCaosTo99,
     activeRecommendation,
     dismissRecommendation,
   } = useApp();
@@ -43,10 +42,6 @@ export default function HomePageStep4() {
 
   const titularesList = profiles.filter((p) => p.tier === "titular");
   const canteraList = profiles.filter((p) => p.tier === "cantera");
-
-  const astroCaos = profiles.find(
-    (p) => p.id === "user-cantera-casi-graduado"
-  );
 
   return (
     <div className="space-y-6">
@@ -169,39 +164,23 @@ export default function HomePageStep4() {
             </p>
           </div>
 
-          {/* Botones de Acción Directa para el Flujo de Prueba del Paso 4 */}
+          {/* Botones de Acción Directa: Crear Perfil y Salir En Vivo */}
           <div className="flex flex-wrap items-center gap-2">
-            {astroCaos && astroCaos.tier === "cantera" ? (
-              <button
-                type="button"
-                onClick={() => simulateGainFollowerForCreator(astroCaos.id)}
-                className="btn-neon-gradient inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-xs font-black"
-              >
-                <TrendingUp className="h-4 w-4" />
-                <span>
-                  Simular +1 Seguidor a Astro Caos ({astroCaos.followersCount}
-                  /100)
-                </span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={resetAstroCaosTo99}
-                className="btn-neon-violet inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-xs font-black"
-              >
-                <RotateCcw className="h-4 w-4" />
-                <span>Restablecer Astro Caos a 99/100 en Cantera</span>
-              </button>
-            )}
-
             <button
               type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="btn-neon-cyan inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-xs font-black"
+              className="btn-neon-cyan inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-xs font-black shadow-neon-cyan"
             >
               <UserPlus className="h-4 w-4" />
-              <span>Crear Perfil</span>
+              <span>+ Crear Perfil</span>
             </button>
+            <Link
+              href="/la-sala"
+              className="btn-neon-gradient inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-2.5 text-xs font-black shadow-neon-cyan"
+            >
+              <Radio className="h-4 w-4" />
+              <span>Transmitir en Vivo</span>
+            </Link>
           </div>
         </div>
       </section>
@@ -237,7 +216,18 @@ export default function HomePageStep4() {
 
               {/* Lista de Tarjetas de LOS TITULARES */}
               <div className="space-y-3">
-                {titularesList.map((creator) => (
+                {titularesList.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-neon-violet/30 bg-[#0e0724]/60 p-6 text-center space-y-2">
+                    <Award className="h-8 w-8 text-fuchsia-300 mx-auto" />
+                    <p className="text-xs font-bold text-white">
+                      Aún no hay Titulares graduados
+                    </p>
+                    <p className="text-[11px] text-fuchsia-200/80">
+                      Los creadores de La Cantera que alcancen 100 seguidores o $100 USD se graduarán aquí automáticamente.
+                    </p>
+                  </div>
+                ) : (
+                  titularesList.map((creator) => (
                   <div
                     key={creator.id}
                     onClick={() => router.push("/la-sala")}
@@ -350,7 +340,7 @@ export default function HomePageStep4() {
                       </Link>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
             </div>
 
@@ -384,7 +374,18 @@ export default function HomePageStep4() {
 
               {/* Lista de Tarjetas de LA CANTERA */}
               <div className="space-y-3">
-                {canteraList.map((creator) => {
+                {canteraList.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-neon-cyan/30 bg-[#071b2e]/60 p-6 text-center space-y-2">
+                    <Rocket className="h-8 w-8 text-cyan-300 mx-auto" />
+                    <p className="text-xs font-bold text-white">
+                      No hay creadores nuevos aún
+                    </p>
+                    <p className="text-[11px] text-cyan-200/80">
+                      Crea un perfil para ser el primero en transmitir desde La Cantera.
+                    </p>
+                  </div>
+                ) : (
+                  canteraList.map((creator) => {
                   const isRecommended = Boolean(creator.recommendedByTitular);
                   const isCloseToGraduate =
                     creator.followersCount >= 95 ||
@@ -511,7 +512,7 @@ export default function HomePageStep4() {
                       </div>
                     </div>
                   );
-                })}
+                }))}
               </div>
             </div>
 

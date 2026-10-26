@@ -31,6 +31,7 @@ export interface LiveKitConnectionOptions {
 let activeRoom: Room | null = null;
 let localVideoTrack: LocalVideoTrack | null = null;
 let localAudioTrack: LocalAudioTrack | null = null;
+let currentFacingMode: "user" | "environment" = "user";
 let connectionPromise: Promise<{ room: Room; mode: "livekit_cloud" } | null> | null =
   null;
 
@@ -274,24 +275,54 @@ export async function connectToLiveKitRoom(
 
       // 5. Si es Anfitrión, publicar cámara y micrófono como pistas WebRTC reales
       if (options.isHost) {
-        try {
-          if (options.cameraEnabled !== false) {
-            const videoTrack = await createLocalVideoTrack({
-              resolution: VideoPresets.h1080.resolution,
+        // (a) Publicar cámara con tolerancia total para teléfonos móviles (Safari iOS, Android y PC)
+        if (options.cameraEnabled !== false) {
+          let videoTrack: LocalVideoTrack | null = null;
+          try {
+            // Intento 1: Cámara frontal móvil con resolución 720p adaptable (fluida y compatible)
+            videoTrack = await createLocalVideoTrack({
+              facingMode: currentFacingMode,
+              resolution: VideoPresets.h720.resolution,
             });
-            localVideoTrack = videoTrack;
-            await room.localParticipant.publishTrack(videoTrack, {
-              name: "camera",
-              simulcast: true,
-              videoCodec: "vp8", // Máxima compatibilidad cruzada con iOS Safari, Android y PC
-              videoEncoding: {
-                maxBitrate: 3_000_000, // 3 Mbps Full HD cristalina
-                maxFramerate: 30,
-              },
-            });
+          } catch (err1) {
+            console.warn("[LiveKit] Intento 1 de cámara falló, probando con facingMode flexible:", err1);
+            try {
+              // Intento 2: Sin restricción estricta de resolución (vital para modo vertical en teléfonos)
+              videoTrack = await createLocalVideoTrack({
+                facingMode: currentFacingMode,
+              });
+            } catch (err2) {
+              console.warn("[LiveKit] Intento 2 de cámara falló, probando cámara genérica del dispositivo:", err2);
+              try {
+                // Intento 3: Cualquier cámara disponible en el navegador
+                videoTrack = await createLocalVideoTrack();
+              } catch (err3) {
+                console.error("[LiveKit] No se pudo acceder a la cámara:", err3);
+              }
+            }
           }
 
-          // BUG 2 (a): Garantizar que la pista de micrófono se cree activa y desmutada
+          if (videoTrack) {
+            localVideoTrack = videoTrack;
+            try {
+              await room.localParticipant.publishTrack(videoTrack, {
+                name: "camera",
+                simulcast: true,
+                videoCodec: "vp8", // Máxima compatibilidad cruzada con iOS Safari, Android y PC
+                videoEncoding: {
+                  maxBitrate: 2_500_000,
+                  maxFramerate: 30,
+                },
+              });
+              console.log("[LiveKit Host] Cámara WebRTC publicada exitosamente.");
+            } catch (pubVideoErr) {
+              console.error("[LiveKit] Error al publicar pista de video:", pubVideoErr);
+            }
+          }
+        }
+
+        // (b) Publicar micrófono en bloque independiente para que nunca se interrumpa
+        try {
           const audioTrack = await createLocalAudioTrack({
             echoCancellation: true,
             noiseSuppression: true,
@@ -313,10 +344,10 @@ export async function connectToLiveKitRoom(
           );
 
           options.onStatusChange?.(
-            "🔴 Transmitiendo en VIVO con LiveKit Cloud (HD 720p Real)"
+            "🔴 Transmitiendo en VIVO con LiveKit Cloud (HD Real)"
           );
-        } catch (publishErr) {
-          console.warn("LiveKit publish warning:", publishErr);
+        } catch (audioErr) {
+          console.warn("[LiveKit] Error al publicar micrófono:", audioErr);
           liveKitDiagState.audioPublished = false;
         }
       } else {
@@ -354,6 +385,26 @@ export function setLiveKitMicMuted(muted: boolean): void {
     } else {
       void localAudioTrack.unmute();
     }
+  }
+}
+
+export function getCurrentFacingMode(): "user" | "environment" {
+  return currentFacingMode;
+}
+
+export async function switchLiveKitCamera(): Promise<"user" | "environment" | null> {
+  if (!localVideoTrack) return null;
+  const nextMode: "user" | "environment" =
+    currentFacingMode === "user" ? "environment" : "user";
+  try {
+    await localVideoTrack.restartTrack({
+      facingMode: nextMode,
+    });
+    currentFacingMode = nextMode;
+    return currentFacingMode;
+  } catch (err) {
+    console.warn("[LiveKit] No se pudo cambiar de cámara:", err);
+    return null;
   }
 }
 

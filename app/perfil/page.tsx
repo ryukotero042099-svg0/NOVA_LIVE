@@ -70,33 +70,8 @@ export default function PerfilPageStep2And5() {
   const handleStartLiveFromProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsStartingLive(true);
-    setPermissionStatus(
-      "Solicitando permiso de cámara y micrófono del navegador..."
-    );
+    setPermissionStatus("Conectando con LiveKit Cloud...");
 
-    // 1. Pedir permiso de cámara y micrófono del navegador
-    if (
-      typeof navigator !== "undefined" &&
-      navigator.mediaDevices?.getUserMedia
-    ) {
-      try {
-        const tempStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        // Liberar el stream de verificación para que la sala lo tome limpio al entrar
-        tempStream.getTracks().forEach((t) => t.stop());
-        setPermissionStatus(
-          "Permiso de cámara y micrófono concedido. Conectando sala LiveKit WebRTC..."
-        );
-      } catch {
-        setPermissionStatus(
-          "Iniciando en Modo Demostración con cámara y audio de prueba locales..."
-        );
-      }
-    }
-
-    // 2. Solicitar token al route handler del servidor (/api/livekit/token)
     try {
       const res = await fetch("/api/livekit/token", {
         method: "POST",
@@ -120,7 +95,7 @@ export default function PerfilPageStep2And5() {
     } catch {
       startLiveBroadcast(
         roomTitle.trim() || `En Vivo con ${currentUser.displayName}`,
-        "demo_webrtc",
+        "livekit_cloud",
         true
       );
     } finally {

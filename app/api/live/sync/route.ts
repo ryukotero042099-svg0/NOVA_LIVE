@@ -40,6 +40,26 @@ const globalForNova = globalThis as unknown as {
   __novaLiveStore?: ServerLiveStore;
 };
 
+function sanitizeProfiles(
+  profiles: UserProfile[] | null | undefined
+): UserProfile[] | null {
+  if (!profiles || !Array.isArray(profiles)) return null;
+  return profiles.filter(
+    (p) =>
+      p &&
+      p.id !== "user-cantera-casi-graduado" &&
+      p.id !== "user-cantera-1" &&
+      p.id !== "user-cantera-2" &&
+      p.id !== "user-titular-1" &&
+      p.id !== "user-titular-2" &&
+      p.username !== "Luna_Gaming" &&
+      p.username !== "Astro_Racer" &&
+      p.username !== "Mateo_Cantera" &&
+      p.username !== "Kael_Stream" &&
+      p.username !== "Valeria_Titan"
+  );
+}
+
 if (!globalForNova.__novaLiveStore) {
   globalForNova.__novaLiveStore = {
     version: 0,
@@ -55,6 +75,17 @@ if (!globalForNova.__novaLiveStore) {
 
 export async function GET() {
   const store = globalForNova.__novaLiveStore!;
+  if (store.profiles) {
+    store.profiles = sanitizeProfiles(store.profiles);
+  }
+  if (store.activeLiveSession) {
+    const isTestHost =
+      store.activeLiveSession.hostId === "user-cantera-1" ||
+      store.activeLiveSession.hostUsername === "Luna_Gaming";
+    if (isTestHost) {
+      store.activeLiveSession = null;
+    }
+  }
   return NextResponse.json(store, {
     headers: {
       "Cache-Control": "no-store, max-age=0",
@@ -111,11 +142,19 @@ export async function POST(request: Request) {
     if (body.type === "SYNC_STATE") {
       store.version += 1;
       if (Array.isArray(body.profiles)) {
-        store.profiles = body.profiles;
+        store.profiles = sanitizeProfiles(body.profiles);
       }
       if (body.activeLiveSession !== undefined) {
-        store.activeLiveSession = body.activeLiveSession;
-        if (!body.activeLiveSession) {
+        if (
+          body.activeLiveSession &&
+          (body.activeLiveSession.hostId === "user-cantera-1" ||
+            body.activeLiveSession.hostUsername === "Luna_Gaming")
+        ) {
+          store.activeLiveSession = null;
+        } else {
+          store.activeLiveSession = body.activeLiveSession;
+        }
+        if (!store.activeLiveSession) {
           store.latestVideoFrame = null;
           store.latestVoicePacket = null;
         }

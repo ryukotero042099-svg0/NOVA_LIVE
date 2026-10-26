@@ -50,93 +50,41 @@ import {
 } from "@/lib/games/defendShipEngine";
 import { shuffleQuestions } from "@/lib/games/triviaQuestionBank";
 
-const INITIAL_PRESET_PROFILES: UserProfile[] = [
-  {
-    id: "user-cantera-casi-graduado",
-    username: "Astro_Racer",
-    displayName: "Astro Caos",
-    email: "astro@novalive.es",
-    avatarUrl: "⚡",
-    bio: "¡En 99/100 seguidores! Con +1 seguidor me gradúo en vivo a Los Titulares.",
-    createdAt: new Date(Date.now() - 19 * 86400000).toISOString(),
-    accountAgeDays: 19,
-    followersCount: 99,
-    novaBalance: 2500,
-    creatorEarningsUsd: 98.5,
-    availableWithdrawUsd: 98.5,
-    tier: "cantera",
-    isLive: false,
-    stripeConnectLinked: true,
-  },
-  {
-    id: "user-cantera-1",
-    username: "Luna_Gaming",
-    displayName: "Luna Estelar",
-    email: "luna@novalive.es",
-    avatarUrl: "🚀",
-    bio: "Creadora nueva en La Cantera. ¡Entra a conversar y jugar en mi sala!",
-    createdAt: new Date(Date.now() - 8 * 86400000).toISOString(),
-    accountAgeDays: 8,
-    followersCount: 34,
-    novaBalance: 2500,
-    creatorEarningsUsd: 18.48,
-    availableWithdrawUsd: 18.48,
-    tier: "cantera",
-    isLive: false,
-    stripeConnectLinked: false,
-  },
-  {
-    id: "user-cantera-2",
-    username: "Mateo_Cantera",
-    displayName: "Mateo Nitro",
-    email: "mateo@novalive.es",
-    avatarUrl: "🦊",
-    bio: "Sala abierta en La Cantera. ¡Chat de voz activo para todos!",
-    createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-    accountAgeDays: 5,
-    followersCount: 16,
-    novaBalance: 1200,
-    creatorEarningsUsd: 9.24,
-    availableWithdrawUsd: 9.24,
-    tier: "cantera",
-    isLive: false,
-    stripeConnectLinked: false,
-  },
-  {
-    id: "user-titular-1",
-    username: "Kael_Stream",
-    displayName: "Kael Supernova",
-    email: "kael@novalive.es",
-    avatarUrl: "👑",
-    bio: "Anfitrión de La Sala en Los Titulares.",
-    createdAt: new Date(Date.now() - 120 * 86400000).toISOString(),
-    accountAgeDays: 120,
-    followersCount: 1420,
-    novaBalance: 5000,
-    creatorEarningsUsd: 840.0,
-    availableWithdrawUsd: 165.0,
-    tier: "titular",
-    isLive: false,
-    stripeConnectLinked: true,
-  },
-  {
-    id: "user-titular-2",
-    username: "Valeria_Titan",
-    displayName: "Valeria Titán",
-    email: "valeria@novalive.es",
-    avatarUrl: "🐉",
-    bio: "Creadora Titular de historias interactivas y salas de voz.",
-    createdAt: new Date(Date.now() - 95 * 86400000).toISOString(),
-    accountAgeDays: 95,
-    followersCount: 685,
-    novaBalance: 3400,
-    creatorEarningsUsd: 412.5,
-    availableWithdrawUsd: 88.0,
-    tier: "titular",
-    isLive: false,
-    stripeConnectLinked: true,
-  },
-];
+export function isTestProfile(p: { id: string; username?: string } | null | undefined): boolean {
+  if (!p) return false;
+  return (
+    p.id === "user-cantera-casi-graduado" ||
+    p.id === "user-cantera-1" ||
+    p.id === "user-cantera-2" ||
+    p.id === "user-titular-1" ||
+    p.id === "user-titular-2" ||
+    p.username === "Luna_Gaming" ||
+    p.username === "Astro_Racer" ||
+    p.username === "Mateo_Cantera" ||
+    p.username === "Kael_Stream" ||
+    p.username === "Valeria_Titan"
+  );
+}
+
+export const DEFAULT_FOUNDER_PROFILE: UserProfile = {
+  id: "user-drack-founder",
+  username: "Drack",
+  displayName: "Dracky",
+  email: "ryukotero042099@gmail.com",
+  avatarUrl: "🚀",
+  bio: "Jugando en vivo dentro de NOVA. ¡Entra a mi partida con 1 toque!",
+  createdAt: "2026-10-26T02:07:39.450Z",
+  accountAgeDays: 1,
+  followersCount: 0,
+  novaBalance: 2500,
+  creatorEarningsUsd: 0,
+  availableWithdrawUsd: 0,
+  tier: "cantera",
+  isLive: false,
+  stripeConnectLinked: false,
+};
+
+const INITIAL_PRESET_PROFILES: UserProfile[] = [DEFAULT_FOUNDER_PROFILE];
 
 interface CreateProfileInput {
   username: string;
@@ -256,31 +204,32 @@ interface AppContextValue {
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
 
-const STORAGE_KEY_PROFILES = "nova_live_profiles_v5";
-const SESSION_KEY_CURRENT_ID = "nova_live_tab_user_id_v5";
-const SESSION_KEY_WINDOW_ID = "nova_live_window_instance_id_v5";
-const STORAGE_KEY_TX = "nova_live_transactions_v5";
-const STORAGE_KEY_LIVE_SESSION = "nova_live_active_session_v5";
-const STORAGE_KEY_BROADCAST_HISTORY = "nova_live_broadcast_history_v5";
-const SYNC_CHANNEL_NAME = "nova_live_state_sync_v5";
+const STORAGE_KEY_PROFILES = "nova_live_profiles_v6";
+const STORAGE_KEY_ACTIVE_USER_ID = "nova_live_current_user_id_v6";
+const SESSION_KEY_CURRENT_ID = "nova_live_tab_user_id_v6";
+const SESSION_KEY_WINDOW_ID = "nova_live_window_instance_id_v6";
+const STORAGE_KEY_TX = "nova_live_transactions_v6";
+const STORAGE_KEY_LIVE_SESSION = "nova_live_active_session_v6";
+const STORAGE_KEY_BROADCAST_HISTORY = "nova_live_broadcast_history_v6";
+const SYNC_CHANNEL_NAME = "nova_live_state_sync_v6";
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<UserProfile[]>(
     INITIAL_PRESET_PROFILES
   );
   const [currentUserId, setCurrentUserId] = useState<string>(
-    INITIAL_PRESET_PROFILES[1].id // Luna_Gaming por defecto
+    DEFAULT_FOUNDER_PROFILE.id
   );
   const [windowInstanceId, setWindowInstanceId] = useState<string>("win-init");
   const [transactions, setTransactions] = useState<NovaTransaction[]>([
     {
       id: "tx-init-1",
-      userId: "user-cantera-1",
+      userId: DEFAULT_FOUNDER_PROFILE.id,
       type: "package_purchase",
       title: "Bono de Bienvenida Modo Prueba (2,500 NOVAS)",
       amountNovas: 2500,
       amountUsd: 0,
-      createdAt: new Date(Date.now() - 3600000).toISOString(),
+      createdAt: new Date().toISOString(),
       status: "completado",
     },
   ]);
@@ -372,8 +321,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [currentUserId]);
 
   // Si otra ventana inicia una transmisión y esta ventana tenía el mismo usuario por defecto,
-  // cambiamos automáticamente esta ventana a una segunda cuenta de prueba (ej. Mateo_Cantera)
-  // para que funcione como Espectador de inmediato sin que el usuario tenga que cambiar cuenta manualmente.
+  // cambiamos a otro perfil no-anfitrión para que funcione como espectador si existe
   const ensureSpectatorAccountIfOtherWindowIsHost = (
     incomingSession: ActiveLiveSession | null
   ) => {
@@ -383,17 +331,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       incomingSession.hostWindowId !== windowIdRef.current &&
       currentUserIdRef.current === incomingSession.hostId
     ) {
-      const fallbackSpectator =
-        profilesRef.current.find(
-          (p) =>
-            p.id !== incomingSession.hostId && p.id === "user-cantera-2"
-        ) ||
-        profilesRef.current.find((p) => p.id !== incomingSession.hostId);
+      const fallbackSpectator = profilesRef.current.find(
+        (p) => p.id !== incomingSession.hostId && !isTestProfile(p)
+      );
 
       if (fallbackSpectator) {
         currentUserIdRef.current = fallbackSpectator.id;
         setCurrentUserId(fallbackSpectator.id);
         try {
+          localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, fallbackSpectator.id);
           sessionStorage.setItem(SESSION_KEY_CURRENT_ID, fallbackSpectator.id);
         } catch {
           // Ignorar
@@ -405,7 +351,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Carga inicial desde almacenamiento local y de sesión (por pestaña)
   useEffect(() => {
     try {
-      const savedProfiles = localStorage.getItem(STORAGE_KEY_PROFILES);
+      const savedProfiles =
+        localStorage.getItem(STORAGE_KEY_PROFILES) ||
+        localStorage.getItem("nova_live_profiles_v5");
+      const savedActiveUserId =
+        localStorage.getItem(STORAGE_KEY_ACTIVE_USER_ID) ||
+        sessionStorage.getItem(SESSION_KEY_CURRENT_ID);
       const savedTx = localStorage.getItem(STORAGE_KEY_TX);
       const savedLive = localStorage.getItem(STORAGE_KEY_LIVE_SESSION);
       const savedHistory = localStorage.getItem(STORAGE_KEY_BROADCAST_HISTORY);
@@ -414,33 +365,56 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         ? (JSON.parse(savedLive) as ActiveLiveSession)
         : null;
 
-      // Si esta pestaña inició este roomId específico y se recargó con F5, conservar su hostWindowId
-      const savedHostRoomId = sessionStorage.getItem("nova_host_room_id_v5");
+      // Si el live guardado pertenecía a un perfil de prueba obsoleto, descartarlo
+      const cleanLive =
+        parsedLive && !isTestProfile({ id: parsedLive.hostId, username: parsedLive.hostUsername })
+          ? parsedLive
+          : null;
+
+      const savedHostRoomId = sessionStorage.getItem("nova_host_room_id_v6");
       const winId =
-        parsedLive &&
-        parsedLive.hostWindowId &&
-        savedHostRoomId === parsedLive.roomId
-          ? parsedLive.hostWindowId
+        cleanLive &&
+        cleanLive.hostWindowId &&
+        savedHostRoomId === cleanLive.roomId
+          ? cleanLive.hostWindowId
           : `win-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       windowIdRef.current = winId;
       setWindowInstanceId(winId);
 
-      liveSessionRef.current = parsedLive;
-      setActiveLiveSession(parsedLive);
-      ensureSpectatorAccountIfOtherWindowIsHost(parsedLive);
+      liveSessionRef.current = cleanLive;
+      setActiveLiveSession(cleanLive);
+      ensureSpectatorAccountIfOtherWindowIsHost(cleanLive);
 
+      let loadedProfiles: UserProfile[] = [DEFAULT_FOUNDER_PROFILE];
       if (savedProfiles) {
         const parsed = JSON.parse(savedProfiles) as UserProfile[];
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const syncedProfiles = parsed.map((p) => ({
-            ...p,
-            isLive: parsedLive ? p.id === parsedLive.hostId : false,
-          }));
-          profilesRef.current = syncedProfiles;
-          setProfiles(syncedProfiles);
+          const filtered = parsed.filter((p) => !isTestProfile(p));
+          if (filtered.length > 0) {
+            loadedProfiles = filtered;
+          }
         }
       }
+
+      const syncedProfiles = loadedProfiles.map((p) => ({
+        ...p,
+        isLive: cleanLive ? p.id === cleanLive.hostId : false,
+      }));
+
+      profilesRef.current = syncedProfiles;
+      setProfiles(syncedProfiles);
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(syncedProfiles));
+
+      // Restaurar el perfil activo del usuario
+      if (savedActiveUserId && syncedProfiles.some((p) => p.id === savedActiveUserId)) {
+        currentUserIdRef.current = savedActiveUserId;
+        setCurrentUserId(savedActiveUserId);
+      } else if (syncedProfiles.length > 0) {
+        currentUserIdRef.current = syncedProfiles[0].id;
+        setCurrentUserId(syncedProfiles[0].id);
+      }
+
       if (savedTx) {
         setTransactions(JSON.parse(savedTx));
       }
@@ -630,9 +604,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Guardar identidad de la ventana actual en sessionStorage
+  // Guardar identidad de la ventana actual en localStorage y sessionStorage
   useEffect(() => {
     try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, currentUserId);
       sessionStorage.setItem(SESSION_KEY_CURRENT_ID, currentUserId);
     } catch {
       // Ignorar
@@ -2483,9 +2458,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       stripeConnectLinked: false,
     };
 
-    const nextProfiles = [newProfile, ...profiles];
+    const cleanExisting = profiles.filter((p) => !isTestProfile(p));
+    const nextProfiles = [newProfile, ...cleanExisting];
     setProfiles(nextProfiles);
     setCurrentUserId(newProfile.id);
+    currentUserIdRef.current = newProfile.id;
+    try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, newProfile.id);
+      sessionStorage.setItem(SESSION_KEY_CURRENT_ID, newProfile.id);
+      localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(nextProfiles));
+    } catch {
+      // Ignorar
+    }
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
 
     const welcomeTx: NovaTransaction = {
@@ -2530,6 +2514,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const switchProfile = (profileId: string) => {
     setCurrentUserId(profileId);
+    currentUserIdRef.current = profileId;
+    try {
+      localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, profileId);
+      sessionStorage.setItem(SESSION_KEY_CURRENT_ID, profileId);
+    } catch {
+      // Ignorar
+    }
   };
 
   const sendGift = (

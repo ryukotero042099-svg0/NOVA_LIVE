@@ -9,6 +9,8 @@ import {
   Radio,
   CheckCircle2,
   Volume2,
+  SwitchCamera,
+  Camera,
 } from "lucide-react";
 import { type ActiveLiveSession, type DonationAlertEvent } from "@/lib/types";
 import { useApp } from "@/context/AppContext";
@@ -22,6 +24,8 @@ import {
   getActiveLiveKitRoom,
   startLiveKitAudio,
   disconnectLiveKitRoom,
+  switchLiveKitCamera,
+  getCurrentFacingMode,
 } from "@/lib/media/livekitRoom";
 
 interface LiveVideoStageProps {
@@ -69,6 +73,22 @@ export const LiveVideoStage = React.memo(
       canPlaybackAudio: true,
     });
     const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
+    const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
+    const [isFlippingCamera, setIsFlippingCamera] = useState<boolean>(false);
+
+    const handleFlipCamera = async () => {
+      setIsFlippingCamera(true);
+      try {
+        const next = await switchLiveKitCamera();
+        if (next) {
+          setFacingMode(next);
+        }
+      } catch (e) {
+        console.warn("Flip error:", e);
+      } finally {
+        setIsFlippingCamera(false);
+      }
+    };
 
     // Cronómetro en vivo de la transmisión
     useEffect(() => {
@@ -165,8 +185,15 @@ export const LiveVideoStage = React.memo(
           setAudioDiag((prev) => ({ ...prev, audioPublished: true }));
           const localTrack = getLocalLiveKitVideoTrack();
           if (localTrack && localVideoRef.current) {
-            localTrack.attach(localVideoRef.current);
-            void localVideoRef.current.play().catch(() => {});
+            const el = localVideoRef.current;
+            el.muted = true;
+            el.setAttribute("playsinline", "true");
+            el.setAttribute("webkit-playsinline", "true");
+            localTrack.attach(el);
+            if (!el.srcObject && localTrack.mediaStreamTrack) {
+              el.srcObject = new MediaStream([localTrack.mediaStreamTrack]);
+            }
+            void el.play().catch(() => {});
             setCameraStatusMsg(
               "🔴 Transmitiendo cámara y voz a LiveKit Cloud (HD WebRTC Real)"
             );
@@ -185,6 +212,29 @@ export const LiveVideoStage = React.memo(
       session.hostId,
       session.roomId,
     ]);
+
+    // Garantizar que la cámara local del anfitrión se mantenga acoplada y visible en pantalla (móvil y PC)
+    useEffect(() => {
+      if (!isHostWindow || !isLiveKitMode) return;
+      const attachTimer = setInterval(() => {
+        const localTrack = getLocalLiveKitVideoTrack();
+        const el = localVideoRef.current;
+        if (localTrack && el) {
+          if (!el.srcObject || el.paused) {
+            el.muted = true;
+            el.setAttribute("playsinline", "true");
+            el.setAttribute("webkit-playsinline", "true");
+            localTrack.attach(el);
+            if (!el.srcObject && localTrack.mediaStreamTrack) {
+              el.srcObject = new MediaStream([localTrack.mediaStreamTrack]);
+            }
+            void el.play().catch(() => {});
+          }
+        }
+      }, 700);
+
+      return () => clearInterval(attachTimer);
+    }, [isHostWindow, isLiveKitMode]);
 
     // =========================================================================
     // 2. MODO DEMOSTRACIÓN (FALLBACK): RELEVO DEMO DE CUADROS
@@ -397,8 +447,29 @@ export const LiveVideoStage = React.memo(
                 autoPlay
                 muted
                 playsInline
-                className="h-full w-full object-cover block"
+                className={`h-full w-full object-cover block ${
+                  facingMode === "user" ? "scale-x-[-1]" : ""
+                }`}
               />
+              {/* Botón flotante para voltear cámara móvil (Frontal / Trasera) */}
+              <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleFlipCamera}
+                  disabled={isFlippingCamera}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-neon-cyan/70 bg-space-950/85 px-3 py-1.5 text-xs font-bold text-white shadow-neon-cyan backdrop-blur hover:bg-neon-cyan/20 transition active:scale-95"
+                  title="Cambiar entre cámara frontal y trasera"
+                >
+                  <SwitchCamera
+                    className={`h-3.5 w-3.5 text-neon-cyan ${
+                      isFlippingCamera ? "animate-spin" : ""
+                    }`}
+                  />
+                  <span>
+                    {facingMode === "user" ? "Girar Cámara" : "Frontal"}
+                  </span>
+                </button>
+              </div>
               <canvas
                 ref={captureCanvasRef}
                 width={480}

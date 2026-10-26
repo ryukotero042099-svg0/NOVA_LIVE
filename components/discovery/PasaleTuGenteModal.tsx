@@ -66,9 +66,8 @@ export function PasaleTuGenteModal({
 
         {canteraCreators.length === 0 ? (
           <div className="rounded-2xl border border-amber-400/50 bg-amber-950/30 p-4 text-xs font-bold text-amber-200">
-            ¡Todos los creadores de prueba ya se graduaron a Los Titulares! Usa
-            el botón &ldquo;Restablecer Astro Caos&rdquo; o crea un perfil nuevo
-            para tener creadores en La Cantera.
+            Aún no hay creadores en La Cantera para recibir tu gente. Invita a un
+            amigo a crear su perfil de creador para impulsarlo.
           </div>
         ) : (
           <form onSubmit={handleConfirm} className="space-y-4">
