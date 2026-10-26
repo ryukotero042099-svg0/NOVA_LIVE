@@ -11,6 +11,10 @@ import {
   Volume2,
   SwitchCamera,
   Camera,
+  Mic,
+  MicOff,
+  Pause,
+  Play,
 } from "lucide-react";
 import { type ActiveLiveSession, type DonationAlertEvent } from "@/lib/types";
 import { useApp } from "@/context/AppContext";
@@ -26,6 +30,8 @@ import {
   disconnectLiveKitRoom,
   switchLiveKitCamera,
   getCurrentFacingMode,
+  setLiveKitMicMuted,
+  setLiveKitCameraMuted,
 } from "@/lib/media/livekitRoom";
 
 interface LiveVideoStageProps {
@@ -75,6 +81,8 @@ export const LiveVideoStage = React.memo(
     const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
     const [facingMode, setFacingMode] = useState<"user" | "environment">("user");
     const [isFlippingCamera, setIsFlippingCamera] = useState<boolean>(false);
+    const [isHostMicMuted, setIsHostMicMuted] = useState<boolean>(false);
+    const [isLivePaused, setIsLivePaused] = useState<boolean>(false);
 
     const handleFlipCamera = async () => {
       setIsFlippingCamera(true);
@@ -88,6 +96,19 @@ export const LiveVideoStage = React.memo(
       } finally {
         setIsFlippingCamera(false);
       }
+    };
+
+    const handleToggleHostMic = () => {
+      const nextMuted = !isHostMicMuted;
+      setIsHostMicMuted(nextMuted);
+      setLiveKitMicMuted(nextMuted);
+    };
+
+    const handleToggleLivePause = () => {
+      const nextPaused = !isLivePaused;
+      setIsLivePaused(nextPaused);
+      setLiveKitCameraMuted(nextPaused);
+      setLiveKitMicMuted(nextPaused ? true : isHostMicMuted);
     };
 
     // Cronómetro en vivo de la transmisión
@@ -438,7 +459,7 @@ export const LiveVideoStage = React.memo(
           onTouchStart={() => {
             if (isAudioBlocked) void handleUnlockAudio();
           }}
-          className="relative aspect-video w-full bg-[#050414] overflow-hidden flex items-center justify-center"
+          className="relative min-h-[380px] sm:min-h-[460px] aspect-video w-full bg-[#050414] overflow-hidden flex items-center justify-center"
         >
           {isHostWindow ? (
             <>
@@ -447,29 +468,95 @@ export const LiveVideoStage = React.memo(
                 autoPlay
                 muted
                 playsInline
-                className={`h-full w-full object-cover block ${
+                className={`h-full w-full object-contain block ${
                   facingMode === "user" ? "scale-x-[-1]" : ""
                 }`}
               />
-              {/* Botón flotante para voltear cámara móvil (Frontal / Trasera) */}
-              <div className="absolute bottom-3 right-3 z-20 flex items-center gap-2">
+
+              {/* Barra de Controles Táctiles del Anfitrión durante el En Vivo (Móvil y PC) */}
+              <div className="absolute bottom-3 inset-x-2 sm:inset-x-4 z-20 flex flex-wrap items-center justify-center gap-2">
+                {/* 1. Cambiar Cámara */}
                 <button
                   type="button"
                   onClick={handleFlipCamera}
-                  disabled={isFlippingCamera}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-neon-cyan/70 bg-space-950/85 px-3 py-1.5 text-xs font-bold text-white shadow-neon-cyan backdrop-blur hover:bg-neon-cyan/20 transition active:scale-95"
+                  disabled={isFlippingCamera || isLivePaused}
+                  className="inline-flex items-center gap-1.5 rounded-2xl border border-neon-cyan/70 bg-space-950/90 px-3.5 py-2.5 text-xs font-black text-white shadow-neon-cyan backdrop-blur hover:bg-neon-cyan/25 active:scale-95 transition cursor-pointer"
                   title="Cambiar entre cámara frontal y trasera"
                 >
                   <SwitchCamera
-                    className={`h-3.5 w-3.5 text-neon-cyan ${
+                    className={`h-4 w-4 text-neon-cyan ${
                       isFlippingCamera ? "animate-spin" : ""
                     }`}
                   />
                   <span>
-                    {facingMode === "user" ? "Girar Cámara" : "Frontal"}
+                    {facingMode === "user" ? "Girar Cámara (Trasera)" : "Girar Cámara (Frontal)"}
                   </span>
                 </button>
+
+                {/* 2. Silenciar / Reactivar Micrófono */}
+                <button
+                  type="button"
+                  onClick={handleToggleHostMic}
+                  className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-xs font-black shadow-lg backdrop-blur active:scale-95 transition cursor-pointer ${
+                    isHostMicMuted
+                      ? "border-rose-500 bg-rose-600/90 text-white shadow-rose-600/40 animate-soft-pulse"
+                      : "border-neon-cyan/70 bg-space-950/90 text-white shadow-neon-cyan hover:bg-neon-cyan/25"
+                  }`}
+                  title={isHostMicMuted ? "Reactivar micrófono" : "Silenciar micrófono"}
+                >
+                  {isHostMicMuted ? (
+                    <>
+                      <MicOff className="h-4 w-4 text-rose-200" />
+                      <span>Reactivar Mic</span>
+                    </>
+                  ) : (
+                    <>
+                      <Mic className="h-4 w-4 text-neon-cyan" />
+                      <span>Silenciar Mic</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 3. Pausar / Reanudar Transmisión */}
+                <button
+                  type="button"
+                  onClick={handleToggleLivePause}
+                  className={`inline-flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 text-xs font-black shadow-lg backdrop-blur active:scale-95 transition cursor-pointer ${
+                    isLivePaused
+                      ? "border-amber-400 bg-amber-500 text-slate-950 shadow-amber-400/40 animate-pulse font-extrabold"
+                      : "border-amber-400/60 bg-space-950/90 text-amber-300 shadow-neon-violet hover:bg-amber-400/20"
+                  }`}
+                  title={isLivePaused ? "Reanudar transmisión" : "Pausar transmisión"}
+                >
+                  {isLivePaused ? (
+                    <>
+                      <Play className="h-4 w-4 fill-current text-slate-950" />
+                      <span>Reanudar En Vivo</span>
+                    </>
+                  ) : (
+                    <>
+                      <Pause className="h-4 w-4 text-amber-300" />
+                      <span>Pausar En Vivo</span>
+                    </>
+                  )}
+                </button>
               </div>
+
+              {/* Overlay cuando el anfitrión pausa la transmisión */}
+              {isLivePaused && (
+                <div className="absolute inset-0 z-15 flex flex-col items-center justify-center bg-black/85 backdrop-blur-md p-6 text-center space-y-3">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-3xl border-2 border-amber-400 bg-amber-400/20 text-amber-300 shadow-[0_0_30px_rgba(251,191,36,0.5)]">
+                    <Pause className="h-8 w-8" />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl font-black text-white text-glow-amber">
+                    TRANSMISIÓN EN PAUSA
+                  </h3>
+                  <p className="text-xs text-amber-200/90 max-w-sm">
+                    Has pausado temporalmente el video y el micrófono. Pulsa &ldquo;Reanudar En Vivo&rdquo; abajo para continuar.
+                  </p>
+                </div>
+              )}
+
               <canvas
                 ref={captureCanvasRef}
                 width={480}
@@ -486,7 +573,7 @@ export const LiveVideoStage = React.memo(
                 autoPlay
                 playsInline
                 muted
-                className="h-full w-full object-cover block"
+                className="h-full w-full object-contain block"
               />
               {/* Audio remoto para escuchar al anfitrión y participantes */}
               <audio ref={remoteAudioRef} autoPlay />

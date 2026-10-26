@@ -8,9 +8,9 @@ export const metadata: Metadata = {
   description:
     "Plataforma de streaming en español donde los juegos corren dentro de la app, la audiencia altera la partida con NOVAS o entra a jugar con un toque.",
   icons: {
-    icon: "/nova-symbol.png",
-    shortcut: "/nova-symbol.png",
-    apple: "/nova-symbol.png",
+    icon: "/logo-nova-icono-v3-sin-arco.png",
+    shortcut: "/logo-nova-icono-v3-sin-arco.png",
+    apple: "/logo-nova-icono-v3-sin-arco.png",
   },
 };
 

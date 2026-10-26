@@ -128,6 +128,48 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, store });
     }
 
+    // Sincronización oficial de toques de carrera: EL SERVIDOR DETERMINA EL GANADOR EN TIEMPO REAL
+    if (body.type === "RACE_TAP" && body.userId) {
+      const race = store.activeLiveSession?.activeRace;
+      if (!race) {
+        return NextResponse.json({ ok: false, error: "No hay carrera activa en el servidor" });
+      }
+      if (race.status === "racing") {
+        const racer = race.racers.find((r) => r.id === body.userId);
+        if (racer && racer.progress < 100) {
+          const now = Date.now();
+          // Cada toque verificado en el servidor incrementa el avance real (+5.0%)
+          const newProgress = Math.min(100, Number((racer.progress + 5.0).toFixed(1)));
+          racer.progress = newProgress;
+
+          if (newProgress >= 100 && !racer.finishPlace) {
+            if (!Array.isArray(race.podium)) race.podium = [];
+            const nextPlace = race.podium.length + 1;
+            racer.finishPlace = nextPlace;
+            racer.finishedAtMs = now;
+            race.podium.push({ ...racer });
+
+            // El primer corredor que llegue a 100 en el servidor es el GANADOR OFICIAL
+            if (!race.winner) {
+              race.winner = { ...racer };
+            }
+
+            const humanRacers = race.racers.filter((r) => !r.isBot);
+            const finishedHumans = race.racers.filter(
+              (r) => !r.isBot && r.progress >= 100
+            );
+            if (finishedHumans.length >= humanRacers.length) {
+              race.status = "finished";
+            }
+          }
+
+          store.version += 1;
+          store.updatedAt = now;
+        }
+      }
+      return NextResponse.json({ ok: true, activeRace: race, store });
+    }
+
     // BUG 3: Sincronización de alertas de regalo entre todos los dispositivos
     if (body.type === "DONATION_ALERT" && body.alert) {
       store.version += 1;

@@ -320,32 +320,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  // Si otra ventana inicia una transmisión y esta ventana tenía el mismo usuario por defecto,
-  // cambiamos a otro perfil no-anfitrión para que funcione como espectador si existe
+  // Conservar siempre la cuenta activa del usuario en su dispositivo (no degradar forzosamente a espectador)
   const ensureSpectatorAccountIfOtherWindowIsHost = (
-    incomingSession: ActiveLiveSession | null
+    _incomingSession: ActiveLiveSession | null
   ) => {
-    if (!incomingSession) return;
-    if (
-      incomingSession.hostWindowId &&
-      incomingSession.hostWindowId !== windowIdRef.current &&
-      currentUserIdRef.current === incomingSession.hostId
-    ) {
-      const fallbackSpectator = profilesRef.current.find(
-        (p) => p.id !== incomingSession.hostId && !isTestProfile(p)
-      );
-
-      if (fallbackSpectator) {
-        currentUserIdRef.current = fallbackSpectator.id;
-        setCurrentUserId(fallbackSpectator.id);
-        try {
-          localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, fallbackSpectator.id);
-          sessionStorage.setItem(SESSION_KEY_CURRENT_ID, fallbackSpectator.id);
-        } catch {
-          // Ignorar
-        }
-      }
-    }
+    // Intencionalmente vacío: cada usuario en teléfono o PC conserva su propia sesión y perfil activo
   };
 
   // Carga inicial desde almacenamiento local y de sesión (por pestaña)
@@ -1261,40 +1240,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         const updatedRacers = race.racers.map((racer) => {
           if (racer.progress >= 100) return racer;
-          // Avance base constante (~10 segundos de carrera) para que tocar el botón de ACELERAR marque la diferencia
-          const step =
-            (racer.isBot ? 0.85 : 0.95) + Math.random() * 1.15;
-          const nextProg = Math.min(100, Number((racer.progress + step).toFixed(1)));
-          if (nextProg >= 100) {
-            const place =
-              race.racers.filter((x) => x.progress >= 100).length +
-              nextPodium.filter(
-                (p) => !race.racers.some((x) => x.id === p.id && x.progress >= 100)
-              ).length +
-              1;
-            const finishedRacer: RaceParticipant = {
-              ...racer,
-              progress: 100,
-              finishedAtMs: Date.now(),
-              finishPlace: place,
-            };
-            if (
-              nextPodium.length < 3 &&
-              !nextPodium.some((p) => p.id === finishedRacer.id)
-            ) {
-              nextPodium.push({
-                ...finishedRacer,
-                finishPlace: nextPodium.length + 1,
-              });
-            }
-            return finishedRacer;
+          // Los corredores bot avanzan de forma ambiental lenta para no superar a jugadores reales
+          if (racer.isBot) {
+            const nextProg = Math.min(92, Number((racer.progress + 0.12).toFixed(1)));
+            return { ...racer, progress: nextProg };
           }
-          return { ...racer, progress: nextProg };
+          // Los jugadores reales avanzan estrictamente con sus toques verificados en el servidor
+          return racer;
         });
 
-        const allFinished = updatedRacers.every((r) => r.progress >= 100);
-        const finalStatus = allFinished ? "finished" : "racing";
-        const finalWinner = nextPodium.length > 0 ? nextPodium[0] : null;
+        const humanRacers = updatedRacers.filter((r) => !r.isBot);
+        const allHumansFinished =
+          humanRacers.length > 0 &&
+          humanRacers.every((r) => r.progress >= 100);
+        const finalStatus =
+          allHumansFinished || race.status === "finished"
+            ? "finished"
+            : "racing";
+        const finalWinner =
+          race.winner || (nextPodium.length > 0 ? nextPodium[0] : null);
 
         const updatedSession: ActiveLiveSession = {
           ...cur,
@@ -1316,7 +1280,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           false
         );
 
-        if (allFinished && raceIntervalRef.current) {
+        if (finalStatus === "finished" && raceIntervalRef.current) {
           clearInterval(raceIntervalRef.current);
           raceIntervalRef.current = null;
         }
@@ -1332,6 +1296,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return;
 
     const myId = currentUser.id;
+
+    // 1. Enviar el toque real al servidor para que el servidor determine el ganador oficial por tiempo y toques
+    void fetch("/api/live/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "RACE_TAP",
+        userId: myId,
+        timestamp: Date.now(),
+      }),
+    })
+      .then((r) => r.json())
+      .then((res) => {
+        if (res && res.activeRace && liveSessionRef.current) {
+          const updatedSess: ActiveLiveSession = {
+            ...liveSessionRef.current,
+            activeRace: res.activeRace,
+          };
+          liveSessionRef.current = updatedSess;
+          setActiveLiveSession(updatedSess);
+        }
+      })
+      .catch(() => {});
+
+    // 2. Respuesta visual inmediata en el cliente local para cero latencia táctil
     if (syncChannelRef.current) {
       syncChannelRef.current.postMessage({
         type: "RACE_BOOST",
@@ -1341,7 +1330,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const updatedRacers = session.activeRace.racers.map((r) =>
       r.id === myId && r.progress < 100
-        ? { ...r, progress: Math.min(99, Number((r.progress + 6.5).toFixed(1))) }
+        ? { ...r, progress: Math.min(100, Number((r.progress + 5.0).toFixed(1))) }
         : r
     );
 
@@ -1354,12 +1343,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
     liveSessionRef.current = nextSession;
     setActiveLiveSession(nextSession);
-    broadcastSharedState(
-      profilesRef.current,
-      nextSession,
-      historyRef.current,
-      false
-    );
   };
 
   // Botón "Volver a la sala": regresa al video en vivo sin cerrar la transmisión y sin perder el historial

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
       at.addGrant({
         roomJoin: true,
         room: roomName,
-        canPublish: true, // El anfitrión publica cámara y mic; espectadores pueden publicar mic al unirse a voz
+        canPublish: Boolean(isHost), // SOLO el anfitrión tiene permiso de publicación (cámara/micrófono)
         canSubscribe: true,
         canPublishData: true,
       });

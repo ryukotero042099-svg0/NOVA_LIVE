@@ -84,9 +84,9 @@ export function AppShell({ children }: AppShellProps) {
           {/* Marca NOVA Oficial: Símbolo a la izquierda + Frase en texto real a la derecha */}
           <Link href="/" className="flex items-center gap-2.5 sm:gap-3 group select-none">
             <img
-              src="/nova-symbol.png"
+              src="/logo-nova-icono-v3-sin-arco.png"
               alt="Símbolo Oficial NOVA"
-              className="h-10 w-10 sm:h-11 sm:w-11 object-contain drop-shadow-[0_0_14px_rgba(0,240,255,0.55)] transition-transform duration-200 group-hover:scale-105 shrink-0"
+              className="h-10 w-10 sm:h-11 sm:w-11 rounded-2xl object-contain drop-shadow-[0_0_14px_rgba(0,240,255,0.55)] transition-transform duration-200 group-hover:scale-105 shrink-0"
             />
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-1.5 leading-none">
