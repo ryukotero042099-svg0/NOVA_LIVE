@@ -18,6 +18,8 @@ import {
   Eye,
   Gift,
   LogOut,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { LiveVideoStage } from "@/components/live/LiveVideoStage";
@@ -156,6 +158,24 @@ function LaSalaContent() {
   };
 
   const isCurrentUserHost = Boolean(activeLiveSession) && isHostWindow;
+
+  const currentChannelIndex = activeLiveSessions.findIndex(
+    (s) => s.roomId === activeLiveSession?.roomId
+  );
+
+  const goToPrevChannel = () => {
+    if (activeLiveSessions.length <= 1) return;
+    const prevIdx =
+      (currentChannelIndex - 1 + activeLiveSessions.length) %
+      activeLiveSessions.length;
+    selectLiveSession(activeLiveSessions[prevIdx].hostId);
+  };
+
+  const goToNextChannel = () => {
+    if (activeLiveSessions.length <= 1) return;
+    const nextIdx = (currentChannelIndex + 1) % activeLiveSessions.length;
+    selectLiveSession(activeLiveSessions[nextIdx].hostId);
+  };
 
   return (
     <div className="space-y-6">
@@ -326,40 +346,80 @@ function LaSalaContent() {
            SALA EN VIVO ACTIVA: VIDEO EN TIEMPO REAL + CHAT DE VOZ DE LA SALA
            ===================================================================== */
         <div className="space-y-5">
-          {/* Selector de Canales Activos en Simultáneo (Permite ver múltiples streams a la vez) */}
-          {activeLiveSessions.length > 1 && (
-            <div className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 p-3 flex flex-wrap items-center justify-between gap-3 shadow-neon-cyan">
-              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
-                <span className="text-xs font-black text-cyan-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-                  <Radio className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
-                  <span>Canales En Vivo ({activeLiveSessions.length}):</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  {activeLiveSessions.map((s) => {
-                    const isSelected = activeLiveSession.roomId === s.roomId;
-                    return (
-                      <button
-                        key={s.roomId}
-                        type="button"
-                        onClick={() => selectLiveSession(s.hostId)}
-                        className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black transition cursor-pointer border ${
-                          isSelected
-                            ? "bg-rose-600 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-soft-pulse"
-                            : "bg-space-900 border-white/20 text-slate-300 hover:border-neon-cyan"
-                        }`}
-                      >
-                        <span>{s.hostAvatar}</span>
-                        <span>@{s.hostUsername}</span>
-                        <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px]">
-                          {s.viewersCount} 👁️
-                        </span>
-                      </button>
-                    );
-                  })}
+          {/* =================================================================
+              DOCK DEL SALTO ORBITAL: CAMBIO FLUIDO DE TRANSMISIONES EN VIVO
+              ================================================================= */}
+          <div className="rounded-2xl border-2 border-neon-cyan/50 bg-[#07051a]/95 p-3 flex flex-wrap items-center justify-between gap-3 shadow-[0_0_25px_rgba(0,245,255,0.2)]">
+            <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
+              <span className="text-xs font-black text-neon-cyan uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                <Sparkles className="h-4 w-4 text-neon-cyan animate-spin" />
+                <span>Salto Orbital:</span>
+              </span>
+
+              {/* Controles Rápido Anterior / Siguiente si hay más de 1 canal */}
+              {activeLiveSessions.length > 1 && (
+                <div className="flex items-center gap-1 shrink-0 mr-1">
+                  <button
+                    type="button"
+                    onClick={goToPrevChannel}
+                    className="p-1.5 rounded-xl border border-white/15 bg-white/10 text-white hover:border-neon-cyan hover:bg-neon-cyan/20 transition cursor-pointer"
+                    title="Canal Anterior (Salto Orbital)"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNextChannel}
+                    className="p-1.5 rounded-xl border border-white/15 bg-white/10 text-white hover:border-neon-cyan hover:bg-neon-cyan/20 transition cursor-pointer"
+                    title="Siguiente Canal (Salto Orbital)"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
                 </div>
+              )}
+
+              {/* Lista de Canales Activos en Simultáneo */}
+              <div className="flex items-center gap-2">
+                {activeLiveSessions.map((s) => {
+                  const isSelected = activeLiveSession.roomId === s.roomId;
+                  return (
+                    <button
+                      key={s.roomId}
+                      type="button"
+                      onClick={() => selectLiveSession(s.hostId)}
+                      className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black transition cursor-pointer border ${
+                        isSelected
+                          ? "bg-rose-600 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-soft-pulse"
+                          : "bg-space-900 border-white/20 text-slate-300 hover:border-neon-cyan hover:text-white"
+                      }`}
+                    >
+                      <span className="text-base">{s.hostAvatar}</span>
+                      <span>@{s.hostUsername}</span>
+                      <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px]">
+                        {s.viewersCount} 👁️
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-          )}
+
+            {/* Botón para abrir transmisión propia en simultáneo */}
+            {!isCurrentUserHost && (
+              <button
+                type="button"
+                onClick={() => setShowStartLiveForm((v) => !v)}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-neon-violet/70 bg-neon-violet/20 px-3 py-1.5 text-xs font-black text-fuchsia-200 hover:bg-neon-violet/30 transition cursor-pointer shrink-0"
+              >
+                <Video className="h-3.5 w-3.5 text-neon-cyan" />
+                <span>
+                  {showStartLiveForm
+                    ? "Cerrar Panel"
+                    : "Transmitir en tu canal"}
+                </span>
+              </button>
+            )}
+          </div>
 
           {/* Formulario para iniciar tu propio En Vivo (si estás viendo y decides transmitir a la vez) */}
           {showStartLiveForm && !isCurrentUserHost && (

@@ -19,6 +19,7 @@ import {
   Clock,
   X,
   Radio,
+  Film,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { NOVA_ECONOMY_RULES, type UserProfile } from "@/lib/types";
@@ -80,7 +81,14 @@ export default function HomePageStep4() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 shrink-0">
+            <Link
+              href="/reels"
+              className="btn-glass px-4 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 border border-neon-magenta/60 text-fuchsia-200 hover:text-white hover:bg-neon-magenta/20 transition cursor-pointer"
+            >
+              <Film className="h-4 w-4 text-neon-magenta" />
+              <span>Ver Reels</span>
+            </Link>
             <Link
               href="/la-sala"
               className="btn-neon-gradient px-5 py-3 rounded-2xl text-xs sm:text-sm font-black flex items-center gap-2 shadow-neon-cyan cursor-pointer"

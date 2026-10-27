@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Flame,
   Radio,
+  Film,
   Gamepad2,
   Wallet,
   UserCheck,
@@ -35,25 +36,32 @@ const NAV_ITEMS: NavItem[] = [
     accent: "violet",
   },
   {
+    href: "/reels",
+    label: "Reels",
+    sublabel: "Clips Cósmicos",
+    icon: Film,
+    accent: "magenta",
+  },
+  {
     href: "/juegos",
     label: "Juegos",
     sublabel: "HTML5 In-App",
     icon: Gamepad2,
-    accent: "magenta",
+    accent: "cyan",
   },
   {
     href: "/monedero",
     label: "Monedero",
     sublabel: "Saldo NOVA",
     icon: Wallet,
-    accent: "cyan",
+    accent: "violet",
   },
   {
     href: "/perfil",
     label: "Perfil",
     sublabel: "Panel Creador",
     icon: UserCheck,
-    accent: "violet",
+    accent: "cyan",
   },
 ];
 
