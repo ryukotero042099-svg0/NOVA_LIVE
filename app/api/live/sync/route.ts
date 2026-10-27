@@ -9,6 +9,7 @@ interface ServerLiveStore {
   version: number;
   profiles: UserProfile[] | null;
   activeLiveSession: ActiveLiveSession | null;
+  activeLiveSessions: Record<string, ActiveLiveSession>;
   broadcastHistory: BroadcastHistoryLog[];
   latestVideoFrame: string | null;
   latestVoicePacket: {
@@ -65,6 +66,7 @@ if (!globalForNova.__novaLiveStore) {
     version: 0,
     profiles: null,
     activeLiveSession: null,
+    activeLiveSessions: {},
     broadcastHistory: [],
     latestVideoFrame: null,
     latestVoicePacket: null,
@@ -75,17 +77,23 @@ if (!globalForNova.__novaLiveStore) {
 
 export async function GET() {
   const store = globalForNova.__novaLiveStore!;
+  if (!store.activeLiveSessions) {
+    store.activeLiveSessions = {};
+  }
   if (store.profiles) {
     store.profiles = sanitizeProfiles(store.profiles);
   }
-  if (store.activeLiveSession) {
-    const isTestHost =
-      store.activeLiveSession.hostId === "user-cantera-1" ||
-      store.activeLiveSession.hostUsername === "Luna_Gaming";
-    if (isTestHost) {
-      store.activeLiveSession = null;
+  
+  // Limpiar sesiones obsoletas de prueba
+  for (const [hostId, sess] of Object.entries(store.activeLiveSessions)) {
+    if (sess.hostId === "user-cantera-1" || sess.hostUsername === "Luna_Gaming") {
+      delete store.activeLiveSessions[hostId];
     }
   }
+  
+  const currentSessions = Object.values(store.activeLiveSessions);
+  store.activeLiveSession = currentSessions[0] || null;
+
   return NextResponse.json(store, {
     headers: {
       "Cache-Control": "no-store, max-age=0",
@@ -96,34 +104,36 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const store = globalForNova.__novaLiveStore!;
+    if (!store.activeLiveSessions) {
+      store.activeLiveSessions = {};
+    }
     const body = await request.json();
 
     if (body.type === "FORCE_STOP_LIVE") {
-      const currentHostId = store.activeLiveSession?.hostId;
-      // Seguridad BUG 1: Solo el anfitrión dueño de la sala puede cortar la transmisión
-      if (currentHostId && body.senderHostId && body.senderHostId !== currentHostId) {
-        return NextResponse.json(
-          { error: "Permiso denegado: Solo el anfitrión puede terminar la transmisión." },
-          { status: 403 }
-        );
+      const stoppedHostId = body.senderHostId;
+      if (stoppedHostId && store.activeLiveSessions[stoppedHostId]) {
+        delete store.activeLiveSessions[stoppedHostId];
+      }
+      
+      const remaining = Object.values(store.activeLiveSessions);
+      store.activeLiveSession = remaining[0] || null;
+      if (!store.activeLiveSession) {
+        store.latestVideoFrame = null;
+        store.latestVoicePacket = null;
+        store.latestDonationAlert = null;
       }
 
-      store.version += 1;
-      store.activeLiveSession = null;
-      store.latestVideoFrame = null;
-      store.latestVoicePacket = null;
-      store.latestDonationAlert = null;
       if (Array.isArray(body.profiles)) {
-        store.profiles = body.profiles.map((p: UserProfile) => ({
-          ...p,
-          isLive: false,
-        }));
-      } else if (store.profiles) {
-        store.profiles = store.profiles.map((p) => ({ ...p, isLive: false }));
+        store.profiles = body.profiles;
+      } else if (store.profiles && stoppedHostId) {
+        store.profiles = store.profiles.map((p) =>
+          p.id === stoppedHostId ? { ...p, isLive: false } : p
+        );
       }
       if (Array.isArray(body.broadcastHistory)) {
         store.broadcastHistory = body.broadcastHistory;
       }
+      store.version += 1;
       store.updatedAt = Date.now();
       return NextResponse.json({ ok: true, store });
     }
@@ -183,23 +193,42 @@ export async function POST(request: Request) {
 
     if (body.type === "SYNC_STATE") {
       store.version += 1;
+      if (!store.activeLiveSessions) {
+        store.activeLiveSessions = {};
+      }
+      if (body.activeLiveSession) {
+        const isTestHost =
+          body.activeLiveSession.hostId === "user-cantera-1" ||
+          body.activeLiveSession.hostUsername === "Luna_Gaming";
+        if (!isTestHost) {
+          store.activeLiveSessions[body.activeLiveSession.hostId] = body.activeLiveSession;
+          store.activeLiveSession = body.activeLiveSession;
+        }
+      }
+      if (body.activeLiveSessions && typeof body.activeLiveSessions === "object") {
+        if (Array.isArray(body.activeLiveSessions)) {
+          body.activeLiveSessions.forEach((sess: ActiveLiveSession) => {
+            if (sess && sess.hostId) {
+              store.activeLiveSessions[sess.hostId] = sess;
+            }
+          });
+        } else {
+          store.activeLiveSessions = {
+            ...store.activeLiveSessions,
+            ...body.activeLiveSessions,
+          };
+        }
+      }
       if (Array.isArray(body.profiles)) {
         store.profiles = sanitizeProfiles(body.profiles);
       }
-      if (body.activeLiveSession !== undefined) {
-        if (
-          body.activeLiveSession &&
-          (body.activeLiveSession.hostId === "user-cantera-1" ||
-            body.activeLiveSession.hostUsername === "Luna_Gaming")
-        ) {
-          store.activeLiveSession = null;
-        } else {
-          store.activeLiveSession = body.activeLiveSession;
-        }
-        if (!store.activeLiveSession) {
-          store.latestVideoFrame = null;
-          store.latestVoicePacket = null;
-        }
+      // Garantizar que todos los creadores con transmisión activa figuren con isLive = true
+      if (store.profiles && store.activeLiveSessions) {
+        const liveHostIds = new Set(Object.keys(store.activeLiveSessions));
+        store.profiles = store.profiles.map((p) => ({
+          ...p,
+          isLive: liveHostIds.has(p.id) || p.isLive,
+        }));
       }
       if (Array.isArray(body.broadcastHistory)) {
         store.broadcastHistory = body.broadcastHistory;

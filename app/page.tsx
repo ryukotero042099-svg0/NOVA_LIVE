@@ -34,6 +34,7 @@ export default function HomePageStep4() {
     simulateGainFollowerForCreator,
     activeRecommendation,
     dismissRecommendation,
+    selectLiveSession,
   } = useApp();
 
   const [titularForRaid, setTitularForRaid] = useState<UserProfile | null>(
@@ -328,11 +329,14 @@ export default function HomePageStep4() {
                         <span>Pásale tu gente</span>
                       </button>
                       <Link
-                        href="/la-sala"
-                        onClick={(e) => e.stopPropagation()}
+                        href={creator.isLive ? `/la-sala?host=${creator.username}` : "/la-sala"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (creator.isLive) selectLiveSession(creator.id);
+                        }}
                         className={`rounded-xl border px-2.5 py-2 text-center text-[11px] sm:text-xs font-black transition ${
                           creator.isLive
-                            ? "border-rose-400 bg-rose-600 text-white hover:bg-rose-500"
+                            ? "border-rose-400 bg-rose-600 text-white hover:bg-rose-500 shadow-rose-600/40 animate-pulse"
                             : "border-neon-cyan/50 bg-neon-cyan/15 text-neon-cyan hover:bg-neon-cyan/25"
                         }`}
                       >
@@ -499,11 +503,14 @@ export default function HomePageStep4() {
                           </span>
                         </button>
                         <Link
-                          href="/la-sala"
-                          onClick={(e) => e.stopPropagation()}
+                          href={creator.isLive ? `/la-sala?host=${creator.username}` : "/la-sala"}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (creator.isLive) selectLiveSession(creator.id);
+                          }}
                           className={`rounded-xl border px-2.5 py-2 text-center text-[11px] sm:text-xs font-black transition ${
                             creator.isLive
-                              ? "border-rose-400 bg-rose-600 text-white hover:bg-rose-500"
+                              ? "border-rose-400 bg-rose-600 text-white hover:bg-rose-500 shadow-rose-600/40 animate-pulse"
                               : "border-neon-emerald/60 bg-neon-emerald/15 text-neon-emerald hover:bg-neon-emerald/25"
                           }`}
                         >

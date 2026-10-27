@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Radio,
   Video,
@@ -27,13 +28,21 @@ import { LiveDefenseArena } from "@/components/live/LiveDefenseArena";
 import { LiveTriviaArena } from "@/components/live/LiveTriviaArena";
 import { LiveRoomGiftModal } from "@/components/live/LiveRoomGiftModal";
 
-export default function LaSalaPageStep5() {
+function LaSalaContent() {
+  const searchParams = useSearchParams();
+  const hostParam =
+    searchParams.get("host") ||
+    searchParams.get("u") ||
+    searchParams.get("room");
+
   const {
     currentUser,
     profiles,
     switchProfile,
     setIsProfileModalOpen,
     activeLiveSession,
+    activeLiveSessions,
+    selectLiveSession,
     isHostWindow,
     windowInstanceId,
     broadcastHistory,
@@ -55,6 +64,14 @@ export default function LaSalaPageStep5() {
   );
   const [isStartingStream, setIsStartingStream] = useState(false);
   const [isGiftModalOpen, setIsGiftModalOpen] = useState(false);
+  const [showStartLiveForm, setShowStartLiveForm] = useState(false);
+
+  // Sintonizar creador indicado en la URL (?host=usuario)
+  useEffect(() => {
+    if (hostParam) {
+      selectLiveSession(hostParam);
+    }
+  }, [hostParam, selectLiveSession]);
 
   // Actualizar título sugerido cuando cambia el usuario activo en esta ventana
   useEffect(() => {
@@ -345,6 +362,83 @@ export default function LaSalaPageStep5() {
            SALA EN VIVO ACTIVA: VIDEO EN TIEMPO REAL + CHAT DE VOZ DE LA SALA
            ===================================================================== */
         <div className="space-y-5">
+          {/* Selector de Canales Activos en Simultáneo (Permite ver múltiples streams a la vez) */}
+          {activeLiveSessions.length > 1 && (
+            <div className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 p-3 flex flex-wrap items-center justify-between gap-3 shadow-neon-cyan">
+              <div className="flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
+                <span className="text-xs font-black text-cyan-200 uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                  <Radio className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
+                  <span>Canales En Vivo ({activeLiveSessions.length}):</span>
+                </span>
+                <div className="flex items-center gap-2">
+                  {activeLiveSessions.map((s) => {
+                    const isSelected = activeLiveSession.roomId === s.roomId;
+                    return (
+                      <button
+                        key={s.roomId}
+                        type="button"
+                        onClick={() => selectLiveSession(s.hostId)}
+                        className={`inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-black transition cursor-pointer border ${
+                          isSelected
+                            ? "bg-rose-600 border-rose-400 text-white shadow-[0_0_15px_rgba(244,63,94,0.6)] animate-soft-pulse"
+                            : "bg-space-900 border-white/20 text-slate-300 hover:border-neon-cyan"
+                        }`}
+                      >
+                        <span>{s.hostAvatar}</span>
+                        <span>@{s.hostUsername}</span>
+                        <span className="rounded-full bg-white/20 px-1.5 py-0.2 text-[9px]">
+                          {s.viewersCount} 👁️
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Formulario para iniciar tu propio En Vivo (si estás viendo y decides transmitir a la vez) */}
+          {showStartLiveForm && !isCurrentUserHost && (
+            <section className="glass-card-violet rounded-3xl p-5 border border-neon-violet/70 space-y-3">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                  <Video className="h-4 w-4 text-neon-cyan" />
+                  <span>Transmitir en tu propio canal (@{currentUser.username})</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowStartLiveForm(false)}
+                  className="text-xs font-bold text-slate-400 hover:text-white"
+                >
+                  ✕ Cerrar
+                </button>
+              </div>
+              <form onSubmit={handleGoLive} className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div className="sm:col-span-8">
+                  <label className="block text-xs font-black text-cyan-200 mb-1">
+                    Título de tu transmisión:
+                  </label>
+                  <input
+                    type="text"
+                    value={streamTitle}
+                    onChange={(e) => setStreamTitle(e.target.value)}
+                    className="w-full rounded-xl border border-neon-cyan/50 bg-[#060518] px-3.5 py-2 text-xs font-bold text-white focus:outline-none"
+                  />
+                </div>
+                <div className="sm:col-span-4">
+                  <button
+                    type="submit"
+                    disabled={isStartingStream}
+                    className="btn-neon-gradient w-full rounded-xl py-2 px-4 text-xs font-black flex items-center justify-center gap-2 shadow-neon-cyan cursor-pointer"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    <span>{isStartingStream ? "Conectando..." : "🔴 Salir En Vivo"}</span>
+                  </button>
+                </div>
+              </form>
+            </section>
+          )}
+
           {/* Barra de aviso superior de transmisión en curso */}
           <div className="rounded-2xl border-2 border-rose-500/80 bg-gradient-to-r from-rose-950/90 via-space-900/95 to-fuchsia-950/90 p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 shadow-[0_0_30px_rgba(244,63,94,0.35)]">
             <div className="flex items-center gap-3">
@@ -387,6 +481,18 @@ export default function LaSalaPageStep5() {
                 <Gift className="h-4 w-4" />
                 <span>🎁 Regalar</span>
               </button>
+
+              {!isCurrentUserHost && (
+                <button
+                  type="button"
+                  onClick={() => setShowStartLiveForm((v) => !v)}
+                  className="rounded-xl border border-neon-violet bg-neon-violet/30 hover:bg-neon-violet/60 px-3.5 py-2 text-xs font-black text-white shadow transition cursor-pointer flex items-center gap-1.5"
+                  title="Abrir tu propia sala para transmitir en vivo"
+                >
+                  <Video className="h-3.5 w-3.5 text-neon-cyan" />
+                  <span>{showStartLiveForm ? "Ocultar panel" : "Transmitir mi en vivo"}</span>
+                </button>
+              )}
 
               {isCurrentUserHost ? (
                 <button
@@ -641,5 +747,21 @@ export default function LaSalaPageStep5() {
         )}
       </section>
     </div>
+  );
+}
+
+export default function LaSalaPageStep5() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-white">
+          <p className="text-sm font-bold text-cyan-200 animate-pulse">
+            Cargando La Sala de Transmisiones...
+          </p>
+        </div>
+      }
+    >
+      <LaSalaContent />
+    </Suspense>
   );
 }

@@ -114,6 +114,8 @@ interface AppContextValue {
   windowInstanceId: string;
   isHostWindow: boolean;
   activeLiveSession: ActiveLiveSession | null;
+  activeLiveSessions: ActiveLiveSession[];
+  selectLiveSession: (hostIdOrRoomId: string) => void;
   broadcastHistory: BroadcastHistoryLog[];
   startLiveBroadcast: (
     title: string,
@@ -235,6 +237,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ]);
   const [activeLiveSession, setActiveLiveSession] =
     useState<ActiveLiveSession | null>(null);
+  const [activeLiveSessions, setActiveLiveSessions] = useState<
+    ActiveLiveSession[]
+  >([]);
+  const liveSessionsRef = useRef<ActiveLiveSession[]>([]);
   const [broadcastHistory, setBroadcastHistory] = useState<
     BroadcastHistoryLog[]
   >([]);
@@ -546,12 +552,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               profilesRef.current = serverStore.profiles;
               setProfiles(serverStore.profiles);
             }
-            if (serverStore.activeLiveSession !== undefined) {
+            if (serverStore.activeLiveSessions) {
+              const sessionsList: ActiveLiveSession[] = Array.isArray(serverStore.activeLiveSessions)
+                ? serverStore.activeLiveSessions
+                : Object.values(serverStore.activeLiveSessions);
+              liveSessionsRef.current = sessionsList;
+              setActiveLiveSessions(sessionsList);
+
+              const myHostSession = sessionsList.find((s) => s.hostId === currentUserIdRef.current);
+              if (myHostSession) {
+                liveSessionRef.current = myHostSession;
+                setActiveLiveSession(myHostSession);
+              } else if (
+                liveSessionRef.current &&
+                sessionsList.some((s) => s.roomId === liveSessionRef.current?.roomId)
+              ) {
+                const cur = sessionsList.find((s) => s.roomId === liveSessionRef.current?.roomId);
+                if (cur) {
+                  liveSessionRef.current = cur;
+                  setActiveLiveSession(cur);
+                }
+              } else {
+                const nextS = sessionsList[0] || null;
+                liveSessionRef.current = nextS;
+                setActiveLiveSession(nextS);
+              }
+            } else if (serverStore.activeLiveSession !== undefined) {
               liveSessionRef.current = serverStore.activeLiveSession;
               setActiveLiveSession(serverStore.activeLiveSession);
-              ensureSpectatorAccountIfOtherWindowIsHost(
-                serverStore.activeLiveSession
-              );
             }
             if (Array.isArray(serverStore.broadcastHistory)) {
               historyRef.current = serverStore.broadcastHistory;
@@ -623,9 +651,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
       const payload = {
         type: forceStop ? "FORCE_STOP_LIVE" : "SYNC_STATE",
-        senderHostId: (liveSessionRef.current || nextLive)?.hostId || currentUser.id,
+        senderHostId: forceStop ? currentUser.id : (liveSessionRef.current || nextLive)?.hostId || currentUser.id,
         profiles: nextProfiles,
         activeLiveSession: nextLive,
+        activeLiveSessions: liveSessionsRef.current,
         broadcastHistory: nextHistory,
       };
 
@@ -670,6 +699,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         activeLiveSession.hostId === currentUser.id)
   );
 
+  const selectLiveSession = (hostIdOrRoomId: string) => {
+    const list = liveSessionsRef.current;
+    const found = list.find(
+      (s) =>
+        s.hostId === hostIdOrRoomId ||
+        s.roomId === hostIdOrRoomId ||
+        s.hostUsername.toLowerCase() === hostIdOrRoomId.toLowerCase()
+    );
+    if (found) {
+      liveSessionRef.current = found;
+      setActiveLiveSession(found);
+    }
+  };
+
   // =========================================================================
   // PASO 5: FUNCIONES DE VIDEO EN VIVO Y CHAT DE VOZ DE LA SALA
   // =========================================================================
@@ -711,9 +754,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       voiceParticipants: [hostParticipant],
     };
 
+    const nextSessions = [
+      newSession,
+      ...liveSessionsRef.current.filter((s) => s.hostId !== currentUser.id),
+    ];
+    liveSessionsRef.current = nextSessions;
+    setActiveLiveSessions(nextSessions);
+
     const nextProfiles = profilesRef.current.map((p) => ({
       ...p,
-      isLive: p.id === currentUser.id,
+      isLive: p.id === currentUser.id || nextSessions.some((s) => s.hostId === p.id),
     }));
 
     try {
@@ -742,8 +792,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
 
-    // Apagar inmediatamente el ref para que ningún intervalo de voz vuelva a revivir la sesión
-    liveSessionRef.current = null;
+    const sessionHostId = currentSession.hostId;
+    const remainingSessions = liveSessionsRef.current.filter(
+      (s) => s.hostId !== sessionHostId
+    );
+    liveSessionsRef.current = remainingSessions;
+    setActiveLiveSessions(remainingSessions);
+
+    const nextActive = remainingSessions[0] || null;
+    liveSessionRef.current = nextActive;
+    setActiveLiveSession(nextActive);
+
     try {
       sessionStorage.removeItem("nova_host_room_id_v6");
     } catch {
@@ -758,7 +817,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const nextProfiles = profilesRef.current.map((p) => ({
       ...p,
-      isLive: false,
+      isLive: remainingSessions.some((s) => s.hostId === p.id),
     }));
 
     if (!currentSession) {
@@ -2887,6 +2946,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         windowInstanceId,
         isHostWindow,
         activeLiveSession,
+        activeLiveSessions,
+        selectLiveSession,
         broadcastHistory,
         startLiveBroadcast,
         endLiveBroadcast,
