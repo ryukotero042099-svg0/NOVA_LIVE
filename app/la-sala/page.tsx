@@ -207,75 +207,39 @@ function LaSalaContent() {
       </section>
 
       {/* =====================================================================
-          SELECTOR RÁPIDO DE IDENTIDAD POR VENTANA (PERMITE TENER CREADOR EN
-          VENTANA 1 Y ESPECTADOR EN VENTANA 2 SIMULTÁNEAMENTE)
+          MI CUENTA EN ESTE DISPOSITIVO (TIKTOK / YOUTUBE STYLE - CUENTA PROPIA)
           ===================================================================== */}
-      <section className="glass-card rounded-3xl p-4 sm:p-5 space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div>
-            <h2 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
-              <UserCheck className="h-5 w-5 text-neon-cyan" />
-              <span>
-                Identidad Activa en Esta Ventana:{" "}
-                <span className="text-neon-cyan">
-                  {currentUser.avatarUrl} {currentUser.displayName} (@
-                  {currentUser.username})
+      <section className="glass-card rounded-3xl p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{currentUser.avatarUrl}</span>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-sm sm:text-base font-black text-white">
+                  {currentUser.displayName}
+                </p>
+                <span className="text-xs font-bold text-neon-cyan">
+                  @{currentUser.username}
                 </span>
-              </span>
-            </h2>
-            <p className="text-xs text-cyan-200/85">
-              Cada pestaña o ventana del navegador conserva su propio usuario para
-              que puedas probar Anfitrión (Ventana 1) y Espectador (Ventana 2) a la
-              vez.
-            </p>
+                <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold uppercase text-slate-300">
+                  {currentUser.tier === "titular" ? "TITULAR" : "CANTERA"}
+                </span>
+              </div>
+              <p className="text-xs text-cyan-200/80 mt-0.5">
+                Saldo: <strong className="text-amber-300">{currentUser.novaBalance.toLocaleString()} NOVAS</strong>
+                {" · "}
+                Ganancias: <strong className="text-emerald-400">${currentUser.creatorEarningsUsd.toFixed(2)} USD</strong>
+              </p>
+            </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-          {profiles.map((prof) => {
-            const isSelected = prof.id === currentUser.id;
-            return (
-              <button
-                key={prof.id}
-                type="button"
-                onClick={() => switchProfile(prof.id)}
-                className={`rounded-2xl border p-3 text-left transition flex flex-col justify-between ${
-                  isSelected
-                    ? "border-2 border-neon-cyan bg-neon-cyan/15 shadow-neon-cyan"
-                    : "border-white/15 bg-space-900/75 hover:border-neon-cyan/50"
-                }`}
-              >
-                <div className="flex items-center justify-between gap-1">
-                  <span className="text-xl">{prof.avatarUrl}</span>
-                  {prof.isLive ? (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-rose-600 px-2 py-0.5 text-[9px] font-black uppercase text-white animate-soft-pulse">
-                      ● EN VIVO
-                    </span>
-                  ) : (
-                    <span className="rounded-full bg-white/10 px-2 py-0.5 text-[9px] font-bold uppercase text-slate-300">
-                      {prof.tier === "titular" ? "TITULAR" : "CANTERA"}
-                    </span>
-                  )}
-                </div>
-                <div className="mt-2">
-                  <p className="text-xs font-black text-white truncate">
-                    {prof.displayName}
-                  </p>
-                  <p className="text-[11px] font-bold text-cyan-300 truncate">
-                    @{prof.username}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
-          <button
-            type="button"
-            onClick={() => setIsProfileModalOpen(true)}
-            className="rounded-2xl border border-dashed border-neon-cyan/50 bg-space-900/40 p-3 text-center transition flex flex-col items-center justify-center gap-1 hover:border-neon-cyan text-cyan-200"
-          >
-            <span className="text-xl font-bold">+</span>
-            <p className="text-xs font-black">Crear Otro Perfil</p>
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/perfil"
+              className="btn-glass rounded-xl px-4 py-2 text-xs font-black text-white hover:text-neon-cyan transition"
+            >
+              Editar Mi Perfil
+            </Link>
+          </div>
         </div>
       </section>
 

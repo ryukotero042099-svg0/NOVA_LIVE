@@ -84,6 +84,71 @@ export const DEFAULT_FOUNDER_PROFILE: UserProfile = {
   stripeConnectLinked: false,
 };
 
+export const STORAGE_KEY_DEVICE_PROFILE = "nova_live_my_device_profile_v8";
+
+export function getOrCreateDeviceProfile(): UserProfile {
+  if (typeof window === "undefined") return DEFAULT_FOUNDER_PROFILE;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_DEVICE_PROFILE);
+    if (raw) {
+      const parsed = JSON.parse(raw) as UserProfile;
+      if (parsed && parsed.id && !isTestProfile(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignorar
+  }
+
+  // Rescatar perfil creado previamente por el usuario (ej. @dani) si existe en llaves anteriores
+  try {
+    const oldKeys = ["nova_live_custom_profiles_v5", "nova_live_profiles_v6", "nova_live_profiles_v5"];
+    for (const k of oldKeys) {
+      const oldRaw = localStorage.getItem(k);
+      if (oldRaw) {
+        const oldParsed = JSON.parse(oldRaw);
+        if (Array.isArray(oldParsed)) {
+          const found = oldParsed.find((p: any) => p && !isTestProfile(p) && p.username && p.username !== "Drack");
+          if (found && found.id) {
+            localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(found));
+            return found;
+          }
+        }
+      }
+    }
+  } catch {
+    // Ignorar
+  }
+
+  // Generar perfil único, soberano y dedicado para este dispositivo específico
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const avatars = ["🦊", "🚀", "⚡", "🌟", "🎮", "🛸", "👑", "🐉", "🐱", "🦁"];
+  const randomAvatar = avatars[Math.floor(Math.random() * avatars.length)];
+  const newProfile: UserProfile = {
+    id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    username: `usuario_${randomSuffix}`,
+    displayName: `Usuario ${randomSuffix}`,
+    email: `usuario${randomSuffix}@novaliveusa.com`,
+    avatarUrl: randomAvatar,
+    bio: "¡Hola! Estoy en NOVA. Personaliza tu perfil y transmite en vivo.",
+    createdAt: new Date().toISOString(),
+    accountAgeDays: 1,
+    followersCount: 0,
+    novaBalance: 2500,
+    creatorEarningsUsd: 0,
+    availableWithdrawUsd: 0,
+    tier: "cantera",
+    isLive: false,
+    stripeConnectLinked: false,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(newProfile));
+  } catch {
+    // Ignorar
+  }
+  return newProfile;
+}
+
 const INITIAL_PRESET_PROFILES: UserProfile[] = [DEFAULT_FOUNDER_PROFILE];
 
 interface CreateProfileInput {
@@ -219,6 +284,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [profiles, setProfiles] = useState<UserProfile[]>(
     INITIAL_PRESET_PROFILES
   );
+  const [myDeviceProfile, setMyDeviceProfile] = useState<UserProfile>(
+    DEFAULT_FOUNDER_PROFILE
+  );
+  const myDeviceProfileRef = useRef<UserProfile>(DEFAULT_FOUNDER_PROFILE);
   const [currentUserId, setCurrentUserId] = useState<string>(
     DEFAULT_FOUNDER_PROFILE.id
   );
@@ -371,7 +440,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setActiveLiveSession(cleanLive);
       ensureSpectatorAccountIfOtherWindowIsHost(cleanLive);
 
-      let loadedProfiles: UserProfile[] = [DEFAULT_FOUNDER_PROFILE];
+      // Obtener o generar perfil soberano exclusivo para este dispositivo
+      const deviceProf = getOrCreateDeviceProfile();
+      setMyDeviceProfile(deviceProf);
+      myDeviceProfileRef.current = deviceProf;
+      setCurrentUserId(deviceProf.id);
+      currentUserIdRef.current = deviceProf.id;
+
+      let loadedProfiles: UserProfile[] = [deviceProf];
       if (savedProfiles) {
         const parsed = JSON.parse(savedProfiles) as UserProfile[];
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -380,6 +456,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             loadedProfiles = filtered;
           }
         }
+      }
+      if (!loadedProfiles.some((p) => p.id === deviceProf.id)) {
+        loadedProfiles.unshift(deviceProf);
       }
 
       const syncedProfiles = loadedProfiles.map((p) => ({
@@ -390,15 +469,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       profilesRef.current = syncedProfiles;
       setProfiles(syncedProfiles);
       localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(syncedProfiles));
-
-      // Restaurar el perfil activo del usuario
-      if (savedActiveUserId && syncedProfiles.some((p) => p.id === savedActiveUserId)) {
-        currentUserIdRef.current = savedActiveUserId;
-        setCurrentUserId(savedActiveUserId);
-      } else if (syncedProfiles.length > 0) {
-        currentUserIdRef.current = syncedProfiles[0].id;
-        setCurrentUserId(syncedProfiles[0].id);
-      }
 
       if (savedTx) {
         setTransactions(JSON.parse(savedTx));
@@ -412,6 +482,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Ignorar errores de lectura
     }
   }, []);
+
+  // Función auxiliar para combinar perfiles remotos conservando SIEMPRE el perfil propio de este dispositivo
+  const mergeRemoteProfiles = (incoming: UserProfile[]): UserProfile[] => {
+    const curDev = myDeviceProfileRef.current;
+    if (!Array.isArray(incoming)) return [curDev];
+    const remoteClean = incoming.filter(
+      (p) => p && !isTestProfile(p) && p.id !== curDev.id
+    );
+    return [curDev, ...remoteClean];
+  };
 
   // Canal de sincronización en tiempo real entre dos o más ventanas del navegador
   // (BroadcastChannel + Polling ligero a /api/live/sync para soportar Incógnito o navegadores distintos)
@@ -444,18 +524,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           void import("@/lib/media/livekitRoom").then(
             ({ disconnectLiveKitRoom }) => disconnectLiveKitRoom()
           );
-          if (msg.profiles) {
-            profilesRef.current = msg.profiles;
-            setProfiles(msg.profiles);
+          if (msg.profiles && Array.isArray(msg.profiles)) {
+            const merged = mergeRemoteProfiles(msg.profiles);
+            profilesRef.current = merged;
+            setProfiles(merged);
           }
           if (msg.broadcastHistory) {
             historyRef.current = msg.broadcastHistory;
             setBroadcastHistory(msg.broadcastHistory);
           }
         } else if (msg.type === "SYNC_STATE") {
-          if (msg.profiles) {
-            profilesRef.current = msg.profiles;
-            setProfiles(msg.profiles);
+          if (msg.profiles && Array.isArray(msg.profiles)) {
+            const merged = mergeRemoteProfiles(msg.profiles);
+            profilesRef.current = merged;
+            setProfiles(merged);
           }
           if (msg.activeLiveSession !== undefined) {
             liveSessionRef.current = msg.activeLiveSession;
@@ -506,8 +588,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (e.key === STORAGE_KEY_PROFILES && e.newValue) {
           isApplyingRemoteRef.current = true;
           const nextP = JSON.parse(e.newValue);
-          profilesRef.current = nextP;
-          setProfiles(nextP);
+          if (Array.isArray(nextP)) {
+            const merged = mergeRemoteProfiles(nextP);
+            profilesRef.current = merged;
+            setProfiles(merged);
+          }
         } else if (e.key === STORAGE_KEY_LIVE_SESSION) {
           isApplyingRemoteRef.current = true;
           const nextL = e.newValue ? JSON.parse(e.newValue) : null;
@@ -549,8 +634,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             isApplyingRemoteRef.current = true;
 
             if (Array.isArray(serverStore.profiles)) {
-              profilesRef.current = serverStore.profiles;
-              setProfiles(serverStore.profiles);
+              const merged = mergeRemoteProfiles(serverStore.profiles);
+              profilesRef.current = merged;
+              setProfiles(merged);
             }
             if (serverStore.activeLiveSessions) {
               const sessionsList: ActiveLiveSession[] = Array.isArray(serverStore.activeLiveSessions)
@@ -690,13 +776,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [transactions]);
 
-  const currentUser =
-    profiles.find((p) => p.id === currentUserId) || profiles[0];
+  const currentUser = myDeviceProfile;
 
   const isHostWindow = Boolean(
     activeLiveSession &&
-      (activeLiveSession.hostWindowId === windowInstanceId ||
-        activeLiveSession.hostId === currentUser.id)
+      activeLiveSession.hostId === myDeviceProfile.id &&
+      (activeLiveSession.hostWindowId === windowInstanceId || !activeLiveSession.hostWindowId)
   );
 
   const selectLiveSession = (hostIdOrRoomId: string) => {
@@ -2502,10 +2587,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const cleanExisting = profiles.filter((p) => !isTestProfile(p));
     const nextProfiles = [newProfile, ...cleanExisting];
+    setMyDeviceProfile(newProfile);
+    myDeviceProfileRef.current = newProfile;
     setProfiles(nextProfiles);
     setCurrentUserId(newProfile.id);
     currentUserIdRef.current = newProfile.id;
     try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(newProfile));
       localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, newProfile.id);
       sessionStorage.setItem(SESSION_KEY_CURRENT_ID, newProfile.id);
       localStorage.setItem(STORAGE_KEY_PROFILES, JSON.stringify(nextProfiles));
@@ -2531,37 +2619,52 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateCurrentProfile = (updates: Partial<CreateProfileInput>) => {
-    const nextProfiles = profiles.map((p) => {
-      if (p.id !== currentUser.id) return p;
-      const cleanUser =
-        updates.username !== undefined
-          ? updates.username.trim().replace(/^@+/, "").replace(/\s+/g, "_")
-          : p.username;
-      return {
-        ...p,
-        username: cleanUser || p.username,
-        displayName:
-          updates.displayName !== undefined
-            ? updates.displayName
-            : p.displayName,
-        email: updates.email !== undefined ? updates.email : p.email,
-        avatarUrl:
-          updates.avatarUrl !== undefined ? updates.avatarUrl : p.avatarUrl,
-        bio: updates.bio !== undefined ? updates.bio : p.bio,
-      };
-    });
+    const cleanUser =
+      updates.username !== undefined
+        ? updates.username.trim().replace(/^@+/, "").replace(/\s+/g, "_")
+        : myDeviceProfile.username;
+    const updatedProfile: UserProfile = {
+      ...myDeviceProfile,
+      username: cleanUser || myDeviceProfile.username,
+      displayName:
+        updates.displayName !== undefined
+          ? updates.displayName
+          : myDeviceProfile.displayName,
+      email: updates.email !== undefined ? updates.email : myDeviceProfile.email,
+      avatarUrl:
+        updates.avatarUrl !== undefined ? updates.avatarUrl : myDeviceProfile.avatarUrl,
+      bio: updates.bio !== undefined ? updates.bio : myDeviceProfile.bio,
+    };
+    setMyDeviceProfile(updatedProfile);
+    myDeviceProfileRef.current = updatedProfile;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedProfile));
+    } catch {
+      // Ignorar
+    }
+
+    const otherProfiles = profilesRef.current.filter((p) => p.id !== updatedProfile.id);
+    const nextProfiles = [updatedProfile, ...otherProfiles];
+    profilesRef.current = nextProfiles;
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
+    void syncProfileToSupabaseIfConfigured(updatedProfile);
   };
 
   const switchProfile = (profileId: string) => {
-    setCurrentUserId(profileId);
-    currentUserIdRef.current = profileId;
-    try {
-      localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, profileId);
-      sessionStorage.setItem(SESSION_KEY_CURRENT_ID, profileId);
-    } catch {
-      // Ignorar
+    const target = profilesRef.current.find((p) => p.id === profileId);
+    if (target) {
+      setMyDeviceProfile(target);
+      myDeviceProfileRef.current = target;
+      setCurrentUserId(target.id);
+      currentUserIdRef.current = target.id;
+      try {
+        localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(target));
+        localStorage.setItem(STORAGE_KEY_ACTIVE_USER_ID, target.id);
+        sessionStorage.setItem(SESSION_KEY_CURRENT_ID, target.id);
+      } catch {
+        // Ignorar
+      }
     }
   };
 
@@ -2633,6 +2736,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       return updated;
     });
+
+    const updatedDevice =
+      nextProfiles.find((p) => p.id === myDeviceProfile.id) || myDeviceProfile;
+    setMyDeviceProfile(updatedDevice);
+    myDeviceProfileRef.current = updatedDevice;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedDevice));
+    } catch {}
 
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
@@ -2724,10 +2835,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const purchasePackage = (pkg: NovaPackage) => {
     const totalNovas = pkg.novas + pkg.bonusNovas;
+    const updatedDevice: UserProfile = {
+      ...myDeviceProfile,
+      novaBalance: myDeviceProfile.novaBalance + totalNovas,
+    };
+    setMyDeviceProfile(updatedDevice);
+    myDeviceProfileRef.current = updatedDevice;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedDevice));
+    } catch {}
+
     const nextProfiles = profiles.map((p) =>
-      p.id === currentUser.id
-        ? { ...p, novaBalance: p.novaBalance + totalNovas }
-        : p
+      p.id === updatedDevice.id ? updatedDevice : p
     );
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
@@ -2748,18 +2867,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const addTestNovas = (amount: number) => {
+    const updatedDevice: UserProfile = {
+      ...myDeviceProfile,
+      novaBalance: myDeviceProfile.novaBalance + amount,
+    };
+    setMyDeviceProfile(updatedDevice);
+    myDeviceProfileRef.current = updatedDevice;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedDevice));
+    } catch {}
+
     const nextProfiles = profiles.map((p) =>
-      p.id === currentUser.id
-        ? { ...p, novaBalance: p.novaBalance + amount }
-        : p
+      p.id === updatedDevice.id ? updatedDevice : p
     );
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
   };
 
   const linkStripeConnect = () => {
+    const updatedDevice: UserProfile = {
+      ...myDeviceProfile,
+      stripeConnectLinked: true,
+    };
+    setMyDeviceProfile(updatedDevice);
+    myDeviceProfileRef.current = updatedDevice;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedDevice));
+    } catch {}
+
     const nextProfiles = profiles.map((p) =>
-      p.id === currentUser.id ? { ...p, stripeConnectLinked: true } : p
+      p.id === updatedDevice.id ? updatedDevice : p
     );
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);
@@ -2788,8 +2925,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
 
     const amountToWithdraw = currentUser.availableWithdrawUsd;
+    const updatedDevice: UserProfile = {
+      ...myDeviceProfile,
+      availableWithdrawUsd: 0,
+    };
+    setMyDeviceProfile(updatedDevice);
+    myDeviceProfileRef.current = updatedDevice;
+    try {
+      localStorage.setItem(STORAGE_KEY_DEVICE_PROFILE, JSON.stringify(updatedDevice));
+    } catch {}
+
     const nextProfiles = profiles.map((p) =>
-      p.id === currentUser.id ? { ...p, availableWithdrawUsd: 0 } : p
+      p.id === updatedDevice.id ? updatedDevice : p
     );
     setProfiles(nextProfiles);
     broadcastSharedState(nextProfiles, activeLiveSession, broadcastHistory);

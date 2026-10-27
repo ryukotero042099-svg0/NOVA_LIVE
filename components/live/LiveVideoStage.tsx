@@ -48,7 +48,7 @@ export const LiveVideoStage = React.memo(
     isHostWindow,
     onEndBroadcast,
   }: LiveVideoStageProps) {
-    const { enqueueDonationAlert } = useApp();
+    const { enqueueDonationAlert, currentUser } = useApp();
     const localVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
     const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -153,10 +153,10 @@ export const LiveVideoStage = React.memo(
         roomName: session.roomId,
         participantId: isHostWindow
           ? session.hostId
-          : `viewer-${Date.now()}`,
+          : `${currentUser?.id || "viewer"}-${Date.now().toString(36)}`,
         participantName: isHostWindow
           ? session.hostDisplayName
-          : "Espectador NOVA",
+          : (currentUser?.displayName || "Espectador NOVA"),
         isHost: isHostWindow,
         cameraEnabled: session.hostCameraEnabled,
         onVideoTrackSubscribed: (track) => {
