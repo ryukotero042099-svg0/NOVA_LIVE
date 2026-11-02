@@ -83,6 +83,58 @@ export const LiveVideoStage = React.memo(
     const [isFlippingCamera, setIsFlippingCamera] = useState<boolean>(false);
     const [isHostMicMuted, setIsHostMicMuted] = useState<boolean>(false);
     const [isLivePaused, setIsLivePaused] = useState<boolean>(false);
+    const [clipSavedNotice, setClipSavedNotice] = useState<boolean>(false);
+
+    const handleCaptureClipForReels = () => {
+      try {
+        const activeGameTag = session.activeRace
+          ? "Carrera Galáctica"
+          : session.activeImpostor
+          ? "El Impostor"
+          : session.activeDefense
+          ? "Defiende la Nave"
+          : session.activeTrivia
+          ? "Trivia Galáctica"
+          : "Charla Libre";
+
+        const newReel = {
+          id: `reel-${Date.now()}`,
+          creatorId: session.hostId,
+          creatorUsername: session.hostUsername,
+          creatorDisplayName: session.hostDisplayName,
+          creatorAvatar: session.hostAvatar,
+          title: `🔥 Momento en Vivo: ${session.title}`,
+          description: `Clip capturado en directo desde La Sala con ${session.viewersCount} espectadores presentes.`,
+          gameTag: activeGameTag,
+          accentColor: "#00f5ff",
+          gradient: "from-[#081b29] via-[#0b1021] to-[#02050e]",
+          likesCount: 1,
+          commentsCount: 0,
+          novasTipsCount: 0,
+          sharesCount: 0,
+          createdAt: "Capturado en Vivo",
+        };
+
+        const raw = localStorage.getItem("nova_live_reels_v2");
+        const existing = raw ? JSON.parse(raw) : [];
+        const updated = [newReel, ...(Array.isArray(existing) ? existing : [])];
+        localStorage.setItem("nova_live_reels_v2", JSON.stringify(updated));
+
+        void fetch("/api/live/sync", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "SYNC_REELS",
+            reels: updated,
+          }),
+        }).catch(() => {});
+
+        setClipSavedNotice(true);
+        setTimeout(() => setClipSavedNotice(false), 3000);
+      } catch {
+        // Ignorar
+      }
+    };
 
     const handleFlipCamera = async () => {
       setIsFlippingCamera(true);
@@ -858,6 +910,21 @@ export const LiveVideoStage = React.memo(
                     <span>Pausar En Vivo</span>
                   </>
                 )}
+              </button>
+
+              {/* 3.5. Capturar Clip para Reels */}
+              <button
+                type="button"
+                onClick={handleCaptureClipForReels}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-neon-violet/80 bg-neon-violet/25 hover:bg-neon-violet/40 px-3.5 py-2 text-xs font-black text-fuchsia-100 shadow active:scale-95 transition cursor-pointer"
+                title="Publica un clip de tu transmisión actual directo en la sección Reels"
+              >
+                <Sparkles className="h-4 w-4 text-neon-cyan" />
+                <span>
+                  {clipSavedNotice
+                    ? "✅ ¡Publicado en Reels!"
+                    : "🎬 Guardar Clip en Reels"}
+                </span>
               </button>
 
               {/* 4. Terminar Transmisión */}

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   UserCheck,
@@ -17,6 +18,10 @@ import {
   Square,
   Eye,
   X,
+  Film,
+  Heart,
+  Gift,
+  Trash2,
 } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { NOVA_ECONOMY_RULES } from "@/lib/types";
@@ -43,6 +48,59 @@ export default function PerfilPageStep2And5() {
   const [bio, setBio] = useState(currentUser.bio);
   const [avatarUrl, setAvatarUrl] = useState(currentUser.avatarUrl);
   const [savedNotice, setSavedNotice] = useState(false);
+  const [myReels, setMyReels] = useState<
+    {
+      id: string;
+      creatorId: string;
+      creatorUsername: string;
+      title: string;
+      gameTag: string;
+      likesCount: number;
+      novasTipsCount: number;
+      createdAt: string;
+    }[]
+  >([]);
+
+  useEffect(() => {
+    const loadMyReels = () => {
+      try {
+        const raw = localStorage.getItem("nova_live_reels_v2");
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          const mine = parsed.filter(
+            (r) =>
+              r.creatorId === currentUser.id ||
+              (r.creatorUsername &&
+                r.creatorUsername.toLowerCase() ===
+                  currentUser.username.toLowerCase())
+          );
+          setMyReels(mine);
+        }
+      } catch {
+        // Ignorar
+      }
+    };
+    loadMyReels();
+  }, [currentUser.id, currentUser.username]);
+
+  const handleDeleteMyReel = (reelId: string) => {
+    try {
+      const raw = localStorage.getItem("nova_live_reels_v2");
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return;
+      const updated = parsed.filter((r) => r.id !== reelId);
+      localStorage.setItem("nova_live_reels_v2", JSON.stringify(updated));
+      setMyReels((prev) => prev.filter((r) => r.id !== reelId));
+      void fetch("/api/live/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "SYNC_REELS", reels: updated }),
+      }).catch(() => {});
+    } catch {
+      // Ignorar
+    }
+  };
 
   // Modal / Formulario para "Transmitir en vivo" desde el perfil del creador (Requisito 1 del Paso 5)
   const [isGoLiveModalOpen, setIsGoLiveModalOpen] = useState(false);
@@ -563,6 +621,94 @@ export default function PerfilPageStep2And5() {
             )}
           </div>
         </form>
+      </section>
+
+      {/* =====================================================================
+          GALERÍA DE MIS REELS PUBLICADOS EN NOVA
+          ===================================================================== */}
+      <section className="glass-card-magenta rounded-3xl p-5 space-y-4 border border-neon-magenta/50">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-white/10 pb-3">
+          <div>
+            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <Film className="h-5 w-5 text-neon-magenta" />
+              <span>Mis Reels Publicados (@{currentUser.username})</span>
+            </h2>
+            <p className="text-xs text-pink-100/85">
+              Clips que has grabado desde tu cámara, subido en Reels o capturado
+              en directo desde La Sala.
+            </p>
+          </div>
+          <Link
+            href="/reels"
+            className="btn-neon-gradient rounded-2xl px-4 py-2 text-xs font-black text-white flex items-center gap-1.5 self-start shadow-neon-cyan"
+          >
+            <Film className="h-4 w-4" />
+            <span>Ir a NOVA Reels / Subir Clip →</span>
+          </Link>
+        </div>
+
+        {myReels.length === 0 ? (
+          <div className="rounded-2xl border border-white/10 bg-space-950/75 p-4 text-xs text-pink-100/85 flex items-center justify-between gap-3">
+            <span>
+              Aún no has publicado Reels con tu cuenta @{currentUser.username}.
+              Puedes grabar uno en la pestaña Reels o pulsar &ldquo;🎬 Guardar
+              Clip en Reels&rdquo; durante tu transmisión en vivo.
+            </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
+            {myReels.map((r) => (
+              <div
+                key={r.id}
+                className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 p-4 flex flex-col justify-between space-y-3 shadow-neon-cyan"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="rounded-full bg-neon-cyan/20 border border-neon-cyan/50 px-2.5 py-0.5 text-[10px] font-black uppercase text-neon-cyan">
+                      {r.gameTag}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400">
+                      {r.createdAt}
+                    </span>
+                  </div>
+                  <p className="text-sm font-black text-white line-clamp-2">
+                    {r.title}
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between border-t border-white/10 pt-2.5 text-xs">
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-1 font-black text-rose-400">
+                      <Heart className="h-3.5 w-3.5 fill-current" />
+                      {r.likesCount}
+                    </span>
+                    <span className="inline-flex items-center gap-1 font-black text-amber-300">
+                      <Gift className="h-3.5 w-3.5" />
+                      {r.novasTipsCount} NOVAS
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/reels"
+                      className="text-xs font-black text-neon-cyan hover:underline"
+                    >
+                      Ver →
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMyReel(r.id)}
+                      className="p-1 text-slate-400 hover:text-rose-400 transition cursor-pointer"
+                      title="Eliminar este Reel"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
