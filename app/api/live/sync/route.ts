@@ -34,6 +34,8 @@ interface ServerLiveStore {
     serverTimestamp: number;
     [key: string]: unknown;
   } | null;
+  reels?: unknown[] | null;
+  reelComments?: Record<string, unknown[]> | null;
   updatedAt: number;
 }
 
@@ -71,6 +73,8 @@ if (!globalForNova.__novaLiveStore) {
     latestVideoFrame: null,
     latestVoicePacket: null,
     latestDonationAlert: null,
+    reels: null,
+    reelComments: null,
     updatedAt: Date.now(),
   };
 }
@@ -262,6 +266,25 @@ export async function POST(request: Request) {
         timestamp: now,
       };
       return NextResponse.json({ ok: true });
+    }
+
+    if (body.type === "SYNC_REELS") {
+      if (Array.isArray(body.reels)) {
+        store.reels = body.reels;
+      }
+      if (body.reelComments && typeof body.reelComments === "object") {
+        store.reelComments = {
+          ...(store.reelComments || {}),
+          ...body.reelComments,
+        };
+      }
+      store.version += 1;
+      store.updatedAt = Date.now();
+      return NextResponse.json({
+        ok: true,
+        reels: store.reels,
+        reelComments: store.reelComments,
+      });
     }
 
     return NextResponse.json({ ok: true, store });
