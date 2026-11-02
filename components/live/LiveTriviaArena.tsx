@@ -84,21 +84,14 @@ export function LiveTriviaArena({ session }: LiveTriviaArenaProps) {
             </p>
           </div>
 
-          {isHostWindow ? (
-            <button
-              type="button"
-              onClick={openTriviaLobby}
-              className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
-            >
-              <Brain className="h-4 w-4" />
-              <span>🧠 Iniciar Trivia Galáctica</span>
-            </button>
-          ) : (
-            <div className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 px-4 py-3 text-xs font-black text-cyan-200 shrink-0 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-neon-cyan animate-soft-pulse" />
-              <span>Listo para jugar cuando el anfitrión abra la sala</span>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={openTriviaLobby}
+            className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
+          >
+            <Brain className="h-4 w-4" />
+            <span>🧠 Iniciar Trivia Galáctica</span>
+          </button>
         </div>
       </section>
     );
@@ -254,7 +247,7 @@ export function LiveTriviaArena({ session }: LiveTriviaArenaProps) {
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5">
               {g.players.map((p) => {
-                const isMe = p.id === currentUser.id && p.windowId === windowInstanceId;
+                const isMe = p.id === currentUser.id || p.windowId === windowInstanceId;
                 return (
                   <div
                     key={`trivia-lobby-${p.id}`}
@@ -413,7 +406,7 @@ export function LiveTriviaArena({ session }: LiveTriviaArenaProps) {
             </span>
             <div className="flex flex-wrap gap-2">
               {g.players.map((p) => {
-                const isMe = p.id === currentUser.id && p.windowId === windowInstanceId;
+                const isMe = p.id === currentUser.id || p.windowId === windowInstanceId;
                 return (
                   <div
                     key={`strip-${p.id}`}

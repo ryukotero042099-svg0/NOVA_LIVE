@@ -786,6 +786,94 @@ export const LiveVideoStage = React.memo(
             )}
           </div>
         </div>
+
+        {/* Barra Fija de Controles del Anfitrión debajo del video (Siempre visible en Móvil y PC, nunca recortada) */}
+        {isHostWindow && (
+          <div className="bg-[#06091e] border-t border-neon-cyan/40 px-4 py-3 flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-neon-cyan/15 border border-neon-cyan/50 px-2.5 py-1 text-[11px] font-black text-neon-cyan">
+                🎛️ Panel de Control del Anfitrión
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* 1. Girar Cámara */}
+              <button
+                type="button"
+                onClick={handleFlipCamera}
+                disabled={isFlippingCamera || isLivePaused}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-neon-cyan/70 bg-space-950 px-3.5 py-2 text-xs font-black text-white shadow hover:bg-neon-cyan/20 active:scale-95 transition cursor-pointer"
+              >
+                <SwitchCamera
+                  className={`h-4 w-4 text-neon-cyan ${
+                    isFlippingCamera ? "animate-spin" : ""
+                  }`}
+                />
+                <span>
+                  {facingMode === "user" ? "Girar Cámara" : "Cámara Frontal"}
+                </span>
+              </button>
+
+              {/* 2. Silenciar / Reactivar Mic */}
+              <button
+                type="button"
+                onClick={handleToggleHostMic}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-black shadow active:scale-95 transition cursor-pointer ${
+                  isHostMicMuted
+                    ? "border-rose-400 bg-rose-600 text-white animate-soft-pulse"
+                    : "border-neon-cyan/70 bg-space-950 text-white hover:bg-neon-cyan/20"
+                }`}
+              >
+                {isHostMicMuted ? (
+                  <>
+                    <MicOff className="h-4 w-4 text-rose-200" />
+                    <span>Reactivar Mic</span>
+                  </>
+                ) : (
+                  <>
+                    <Mic className="h-4 w-4 text-neon-cyan" />
+                    <span>Silenciar Mic</span>
+                  </>
+                )}
+              </button>
+
+              {/* 3. Pausar / Reanudar En Vivo */}
+              <button
+                type="button"
+                onClick={handleToggleLivePause}
+                className={`inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-black shadow active:scale-95 transition cursor-pointer ${
+                  isLivePaused
+                    ? "border-amber-300 bg-amber-400 text-slate-950 font-extrabold animate-pulse"
+                    : "border-amber-400/70 bg-space-950 text-amber-300 hover:bg-amber-400/20"
+                }`}
+              >
+                {isLivePaused ? (
+                  <>
+                    <Play className="h-4 w-4 fill-current text-slate-950" />
+                    <span>Reanudar En Vivo</span>
+                  </>
+                ) : (
+                  <>
+                    <Pause className="h-4 w-4 text-amber-300" />
+                    <span>Pausar En Vivo</span>
+                  </>
+                )}
+              </button>
+
+              {/* 4. Terminar Transmisión */}
+              {onEndBroadcast && (
+                <button
+                  type="button"
+                  onClick={onEndBroadcast}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-rose-400 bg-rose-600 hover:bg-rose-500 px-4 py-2 text-xs font-black text-white shadow-lg active:scale-95 transition cursor-pointer"
+                >
+                  <VideoOff className="h-4 w-4" />
+                  <span>Terminar Transmisión</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     );
   },

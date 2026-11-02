@@ -60,21 +60,14 @@ export function LiveRaceArena({ session }: LiveRaceArenaProps) {
             </p>
           </div>
 
-          {isHostWindow ? (
-            <button
-              type="button"
-              onClick={openLiveRaceLobby}
-              className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
-            >
-              <Flag className="h-4 w-4" />
-              <span>🏁 Iniciar Minijuego: CARRERAS</span>
-            </button>
-          ) : (
-            <div className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 px-4 py-3 text-xs font-black text-cyan-200 shrink-0 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-neon-cyan animate-soft-pulse" />
-              <span>Listo para correr cuando el anfitrión inicie</span>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={openLiveRaceLobby}
+            className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
+          >
+            <Flag className="h-4 w-4" />
+            <span>🏁 Iniciar Minijuego: CARRERAS</span>
+          </button>
         </div>
       </section>
     );

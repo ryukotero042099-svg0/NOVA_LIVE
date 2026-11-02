@@ -94,15 +94,13 @@ export function LiveImpostorArena({ session }: LiveImpostorArenaProps) {
                 : `Esperando a que @${session.hostUsername} abra EL IMPOSTOR para unirte con un toque.`}
             </p>
           </div>
-          {isHostWindow && (
-            <button
-              type="button"
-              onClick={openImpostorLobby}
-              className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
-            >
-              <span>🎭 Jugar: EL IMPOSTOR</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={openImpostorLobby}
+            className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
+          >
+            <span>🎭 Jugar: EL IMPOSTOR</span>
+          </button>
         </div>
         <Scoreboard entries={scoreboard} />
       </section>
@@ -114,9 +112,7 @@ export function LiveImpostorArena({ session }: LiveImpostorArenaProps) {
   // ---------------------------------------------------------------------
   const seat = getMyImpostorSeat();
   const isPlayer = Boolean(seat);
-  const inQueue = g.queue.some(
-    (p) => p.id === currentUser.id && p.windowId === windowInstanceId
-  );
+  const inQueue = g.queue.some((p) => p.id === currentUser.id);
   const amImpostor = Boolean(seat && seat.id === g.impostorId);
   const impostorPlayer: ImpostorPlayer | undefined = g.players.find(
     (p) => p.id === g.impostorId

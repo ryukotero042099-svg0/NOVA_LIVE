@@ -780,8 +780,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const isHostWindow = Boolean(
     activeLiveSession &&
-      activeLiveSession.hostId === myDeviceProfile.id &&
-      (activeLiveSession.hostWindowId === windowInstanceId || !activeLiveSession.hostWindowId)
+      (activeLiveSession.hostId === myDeviceProfile.id ||
+        activeLiveSession.hostUsername.toLowerCase() ===
+          myDeviceProfile.username.toLowerCase() ||
+        activeLiveSession.hostWindowId === windowInstanceId)
   );
 
   const selectLiveSession = (hostIdOrRoomId: string) => {
@@ -1168,16 +1170,63 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   ];
   const SHIP_ICONS = ["🚀", "🛸", "⚡", "🏎️", "☄️"];
 
+  // Garantiza que exista una sesión de La Sala activa al abrir un minijuego desde /juegos o /la-sala
+  const ensureSessionForMinigame = (): ActiveLiveSession => {
+    const existing = liveSessionRef.current;
+    if (existing) {
+      return existing;
+    }
+    const me = myDeviceProfileRef.current;
+    const hostParticipant: VoiceParticipant = {
+      id: me.id,
+      username: me.username,
+      displayName: me.displayName,
+      avatarUrl: me.avatarUrl,
+      role: "anfitrion",
+      hasCamera: true,
+      isMicOn: true,
+      isMutedByHost: false,
+      isSpeaking: false,
+      joinedAt: new Date().toISOString(),
+    };
+    const created: ActiveLiveSession = {
+      roomId: `sala-${me.username.toLowerCase()}-${Date.now()}`,
+      roomCode: "NOVA05",
+      title: `Sala de Juegos y Voz de ${me.displayName} (@${me.username})`,
+      hostId: me.id,
+      hostWindowId: windowIdRef.current,
+      hostUsername: me.username,
+      hostDisplayName: me.displayName,
+      hostAvatar: me.avatarUrl,
+      hostTier: me.tier,
+      startedAt: new Date().toISOString(),
+      viewersCount: 1,
+      peakViewers: 1,
+      providerMode: "livekit_cloud",
+      hostCameraEnabled: true,
+      voiceParticipants: [hostParticipant],
+    };
+    const nextSessions = [
+      created,
+      ...liveSessionsRef.current.filter((s) => s.hostId !== me.id),
+    ];
+    liveSessionsRef.current = nextSessions;
+    setActiveLiveSessions(nextSessions);
+    liveSessionRef.current = created;
+    setActiveLiveSession(created);
+    return created;
+  };
+
   const openLiveRaceLobby = () => {
-    const session = liveSessionRef.current;
-    if (!session) return;
+    const session = ensureSessionForMinigame();
     clearRaceTimers();
 
+    const me = myDeviceProfileRef.current;
     const hostRacer: RaceParticipant = {
-      id: session.hostId,
-      username: session.hostUsername,
-      displayName: session.hostDisplayName,
-      avatarUrl: session.hostAvatar,
+      id: me.id,
+      username: me.username,
+      displayName: me.displayName,
+      avatarUrl: me.avatarUrl,
       shipIcon: "🚀",
       laneColor: "cyan",
       progress: 0,
@@ -1195,6 +1244,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     const nextSession: ActiveLiveSession = {
       ...session,
+      hostWindowId: windowIdRef.current,
       activeRace: newRace,
     };
 
@@ -1543,11 +1593,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getMyImpostorSeat = (): ImpostorPlayer | null => {
     const g = liveSessionRef.current?.activeImpostor;
     if (!g) return null;
+    const myId = myDeviceProfileRef.current.id;
     return (
       g.players.find(
-        (p) =>
-          p.id === currentUserIdRef.current &&
-          p.windowId === windowIdRef.current
+        (p) => p.id === myId || p.id === currentUserIdRef.current
       ) || null
     );
   };
@@ -1617,20 +1666,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const openImpostorLobby = () => {
-    const session = liveSessionRef.current;
-    if (!session) return;
+    const session = ensureSessionForMinigame();
     if (session.activeImpostor) return;
-    const host =
-      profilesRef.current.find((p) => p.id === session.hostId) || currentUser;
+    const me = myDeviceProfileRef.current;
     const seat: ImpostorPlayer = {
-      id: host.id,
-      username: host.username,
-      displayName: host.displayName,
-      avatarUrl: host.avatarUrl,
+      id: me.id,
+      username: me.username,
+      displayName: me.displayName,
+      avatarUrl: me.avatarUrl,
       windowId: windowIdRef.current,
     };
     commitImpostorSession({
       ...session,
+      hostWindowId: windowIdRef.current,
       activeImpostor: {
         gameId: `imp-${Date.now()}`,
         round: 1,
@@ -1649,35 +1697,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const g = session?.activeImpostor;
     if (!session || !g) return;
 
-    let user =
-      profilesRef.current.find((p) => p.id === currentUserIdRef.current) ||
-      currentUser;
+    const user = myDeviceProfileRef.current;
     const everyone = [...g.players, ...g.queue];
 
-    if (
-      everyone.some(
-        (p) => p.id === user.id && p.windowId === windowIdRef.current
-      )
-    ) {
+    if (everyone.some((p) => p.id === user.id)) {
       impostorIntentRef.current.joinGameId = undefined;
       return;
-    }
-
-    // Otra ventana ya usa esta misma cuenta: esta ventana pasa sola a una cuenta libre
-    if (everyone.some((p) => p.id === user.id)) {
-      const free = profilesRef.current.find(
-        (p) => !everyone.some((q) => q.id === p.id)
-      );
-      if (free) {
-        user = free;
-        currentUserIdRef.current = free.id;
-        setCurrentUserId(free.id);
-        try {
-          sessionStorage.setItem(SESSION_KEY_CURRENT_ID, free.id);
-        } catch {
-          // Ignorar
-        }
-      }
     }
 
     const seat: ImpostorPlayer = {
@@ -1928,7 +1953,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const isHostHere = () => {
     const s = liveSessionRef.current;
-    return Boolean(s && s.hostWindowId === windowIdRef.current);
+    if (!s) return false;
+    const myProf = myDeviceProfileRef.current;
+    return Boolean(
+      s.hostId === myProf.id ||
+        s.hostUsername.toLowerCase() === myProf.username.toLowerCase() ||
+        s.hostWindowId === windowIdRef.current
+    );
   };
 
   const commitDefense = (next: LiveDefenseState | null) => {
@@ -1953,27 +1984,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getMyDefenseSeat = (): DefensePlayer | null => {
     const g = liveSessionRef.current?.activeDefense;
     if (!g) return null;
+    const myId = myDeviceProfileRef.current.id;
     return (
       g.players.find(
-        (p) =>
-          p.id === currentUserIdRef.current &&
-          p.windowId === windowIdRef.current
+        (p) => p.id === myId || p.id === currentUserIdRef.current
       ) || null
     );
   };
 
   const openDefenseLobby = () => {
-    const session = liveSessionRef.current;
-    if (!session || !isHostHere() || session.activeDefense) return;
-    const host =
-      profilesRef.current.find((p) => p.id === session.hostId) || currentUser;
+    const session = ensureSessionForMinigame();
+    if (session.activeDefense) return;
+    const me = myDeviceProfileRef.current;
     const lobby = createDefenseLobby({
-      id: host.id,
-      username: host.username,
-      displayName: host.displayName,
-      avatarUrl: host.avatarUrl,
+      id: me.id,
+      username: me.username,
+      displayName: me.displayName,
+      avatarUrl: me.avatarUrl,
       windowId: windowIdRef.current,
     });
+    liveSessionRef.current = {
+      ...session,
+      hostWindowId: windowIdRef.current,
+    };
     defenseAuthRef.current = null;
     commitDefense(lobby);
   };
@@ -1984,33 +2017,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (!session || !g) return;
     if (g.status !== "lobby" && g.status !== "between") return;
 
-    let user =
-      profilesRef.current.find((p) => p.id === currentUserIdRef.current) ||
-      currentUser;
+    const user = myDeviceProfileRef.current;
 
-    if (
-      g.players.some(
-        (p) => p.id === user.id && p.windowId === windowIdRef.current
-      )
-    )
-      return;
-
-    // Otra ventana ya usa esta cuenta: esta ventana pasa sola a una cuenta libre
-    if (g.players.some((p) => p.id === user.id)) {
-      const free = profilesRef.current.find(
-        (p) => !g.players.some((q) => q.id === p.id)
-      );
-      if (free) {
-        user = free;
-        currentUserIdRef.current = free.id;
-        setCurrentUserId(free.id);
-        try {
-          sessionStorage.setItem(SESSION_KEY_CURRENT_ID, free.id);
-        } catch {
-          // Ignorar
-        }
-      }
-    }
+    if (g.players.some((p) => p.id === user.id)) return;
 
     const seat = {
       id: user.id,
@@ -2168,25 +2177,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const getMyTriviaSeat = (): TriviaPlayer | null => {
     const g = liveSessionRef.current?.activeTrivia;
     if (!g) return null;
+    const myId = myDeviceProfileRef.current.id;
     return (
       g.players.find(
-        (p) =>
-          p.id === currentUserIdRef.current &&
-          p.windowId === windowIdRef.current
+        (p) => p.id === myId || p.id === currentUserIdRef.current
       ) || null
     );
   };
 
   const openTriviaLobby = () => {
-    const session = liveSessionRef.current;
-    if (!session || !isHostHere() || session.activeTrivia) return;
-    const host =
-      profilesRef.current.find((p) => p.id === session.hostId) || currentUser;
+    const session = ensureSessionForMinigame();
+    if (session.activeTrivia) return;
+    const me = myDeviceProfileRef.current;
     const initialPlayer: TriviaPlayer = {
-      id: host.id,
-      username: host.username,
-      displayName: host.displayName,
-      avatarUrl: host.avatarUrl,
+      id: me.id,
+      username: me.username,
+      displayName: me.displayName,
+      avatarUrl: me.avatarUrl,
       windowId: windowIdRef.current,
       lives: 3,
       score: 0,
@@ -2205,6 +2212,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       tallies: [0, 0, 0, 0],
       podium: [],
     };
+    liveSessionRef.current = {
+      ...session,
+      hostWindowId: windowIdRef.current,
+    };
     commitTriviaSession(newTrivia);
   };
 
@@ -2213,32 +2224,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const g = session?.activeTrivia;
     if (!session || !g) return;
 
-    let user =
-      profilesRef.current.find((p) => p.id === currentUserIdRef.current) ||
-      currentUser;
-
-    if (
-      g.players.some(
-        (p) => p.id === user.id && p.windowId === windowIdRef.current
-      )
-    ) {
-      return;
-    }
+    const user = myDeviceProfileRef.current;
 
     if (g.players.some((p) => p.id === user.id)) {
-      const free = profilesRef.current.find(
-        (p) => !g.players.some((q) => q.id === p.id)
-      );
-      if (free) {
-        user = free;
-        currentUserIdRef.current = free.id;
-        setCurrentUserId(free.id);
-        try {
-          sessionStorage.setItem(SESSION_KEY_CURRENT_ID, free.id);
-        } catch {
-          // Ignorar
-        }
-      }
+      return;
     }
 
     const newPlayer: TriviaPlayer = {

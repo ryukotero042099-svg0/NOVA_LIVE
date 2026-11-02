@@ -252,7 +252,32 @@ function LaSalaContent() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {!isCurrentUserHost && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (activeLiveSession) {
+                    setShowStartLiveForm(true);
+                  }
+                }}
+                onClickCapture={(e) => {
+                  if (!activeLiveSession) {
+                    e.preventDefault();
+                    void handleGoLive(e as unknown as React.FormEvent);
+                  }
+                }}
+                disabled={isStartingStream}
+                className="btn-neon-gradient rounded-xl px-4 py-2 text-xs font-black text-white flex items-center gap-1.5 shadow-neon-cyan cursor-pointer"
+              >
+                <Play className="h-3.5 w-3.5 fill-current" />
+                <span>
+                  {isStartingStream
+                    ? "Conectando..."
+                    : "🔴 Transmitir mi En Vivo"}
+                </span>
+              </button>
+            )}
             <Link
               href="/perfil"
               className="btn-glass rounded-xl px-4 py-2 text-xs font-black text-white hover:text-neon-cyan transition"
@@ -659,25 +684,31 @@ function LaSalaContent() {
                   <button
                     type="button"
                     onClick={() => {
+                      selectLiveSession(creator.id);
                       joinLiveVoiceRoom();
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="btn-neon-cyan w-full rounded-xl py-2 text-xs font-black flex items-center justify-center gap-1.5"
+                    className="btn-neon-cyan w-full rounded-xl py-2 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Volume2 className="h-3.5 w-3.5" />
                     <span>Ver En Vivo + Voz</span>
                   </button>
-                ) : (
+                ) : creator.id === currentUser.id ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      switchProfile(creator.id);
+                    onClick={(e) => {
+                      void handleGoLive(e as unknown as React.FormEvent);
                       window.scrollTo({ top: 0, behavior: "smooth" });
                     }}
-                    className="w-full rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 py-2 text-xs font-bold text-slate-200 transition"
+                    className="btn-neon-gradient w-full rounded-xl py-2 text-xs font-black flex items-center justify-center gap-1.5 cursor-pointer"
                   >
-                    Elegir a @{creator.username}
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    <span>🔴 Iniciar Mi En Vivo</span>
                   </button>
+                ) : (
+                  <div className="w-full rounded-xl border border-white/15 bg-white/5 py-2 text-center text-xs font-bold text-slate-400">
+                    Sin transmisión activa
+                  </div>
                 )}
               </div>
             );

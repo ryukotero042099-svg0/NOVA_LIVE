@@ -102,21 +102,14 @@ export function LiveDefenseArena({ session }: LiveDefenseArenaProps) {
             </p>
           </div>
 
-          {isHostWindow ? (
-            <button
-              type="button"
-              onClick={openDefenseLobby}
-              className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
-            >
-              <Shield className="h-4 w-4" />
-              <span>🛸 Jugar: DEFIENDE LA NAVE</span>
-            </button>
-          ) : (
-            <div className="rounded-2xl border border-neon-cyan/40 bg-space-950/90 px-4 py-3 text-xs font-black text-cyan-200 shrink-0 flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-neon-cyan animate-soft-pulse" />
-              <span>Listo para defender cuando el capitán inicie</span>
-            </div>
-          )}
+          <button
+            type="button"
+            onClick={openDefenseLobby}
+            className="btn-neon-gradient rounded-2xl px-5 py-3.5 text-xs sm:text-sm font-black flex items-center justify-center gap-2 shrink-0 shadow-neon-cyan cursor-pointer"
+          >
+            <Shield className="h-4 w-4" />
+            <span>🛸 Jugar: DEFIENDE LA NAVE</span>
+          </button>
         </div>
       </section>
     );
@@ -362,7 +355,7 @@ export function LiveDefenseArena({ session }: LiveDefenseArenaProps) {
           const centerAngle = sectorCenterAngle(k, numSectors);
           const pos = polarToPercent(centerAngle, DEFENDER_R);
           const color = DEFENSE_COLORS[p.colorIdx % DEFENSE_COLORS.length];
-          const isMe = p.id === currentUser.id && p.windowId === windowInstanceId;
+          const isMe = p.id === currentUser.id || p.windowId === windowInstanceId;
           const fx = g.fx[p.id];
           const isFxActive = fx && animNow - fx.atMs < 700;
 
